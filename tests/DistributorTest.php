@@ -33,6 +33,7 @@ namespace Segrax\OpenPolicyAgent\Tests;
 
 use DirectoryIterator;
 use Equip\Dispatch\MiddlewareCollection;
+use Exception;
 use InvalidArgumentException;
 use Psr\Http\Message\ResponseInterface;
 use Segrax\OpenPolicyAgent\Middleware\Distributor;
@@ -59,7 +60,7 @@ class DistributorTest extends Base
         };
     }
 
-    protected function executeMiddleware(string $pPath): ResponseInterface
+    protected function executeMiddleware(string $pPath, array $pToken = []): ResponseInterface
     {
         $collection = new MiddlewareCollection([
             new Distributor(
@@ -70,7 +71,8 @@ class DistributorTest extends Base
         ]);
         $request = (new ServerRequestFactory())->createFromGlobals();
         $request = $request->withUri($this->getUri($pPath));
-        $request = $request->withAttribute('token', ["sub" => "opa", "iat" => 1516239022]);
+        $request = $request->withAttribute('token', !empty($pToken) ? $pToken : ["sub" => "opa", "iat" => 1516239022]);
+
         return $collection->dispatch($request, $this->defaultResponse);
     }
 
@@ -100,7 +102,7 @@ class DistributorTest extends Base
         $response = $this->executeMiddleware('/opa/bundles/test');
         $data = gzdecode($response->getBody()->__toString());
         $this->assertNotFalse($data);
-        
+
         // Create a tmp file, write out the tar content
         $tmpFile = sys_get_temp_dir() . DIRECTORY_SEPARATOR . uniqid() . 'tar';
         file_put_contents($tmpFile, $data);
@@ -133,11 +135,37 @@ class DistributorTest extends Base
 
     public function testNoPolicyPath(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(Exception::class);
         new Distributor(
             [Distributor::OPT_POLICY_PATH => ''],
             new ResponseFactory(),
             new StreamFactory()
         );
     }
+
+    public function testValidPathWrongSub(): void
+    {
+        $response = $this->executeMiddleware('/opa/bundles/test', ['sub' => 'me']);
+        $this->assertEquals(404, $response->getStatusCode());
+    }
+
+    public function testEmptyPolicyPath(): void
+    {
+        $folder = sys_get_temp_dir() . DIRECTORY_SEPARATOR . uniqid();
+        $this->expectException(Exception::class);
+        $collection = new MiddlewareCollection([
+            new Distributor(
+                [Distributor::OPT_POLICY_PATH => $folder],
+                new ResponseFactory(),
+                new StreamFactory()
+            )]);
+
+        $request = (new ServerRequestFactory())->createFromGlobals();
+        $request = $request->withUri($this->getUri('/opa/bundles/test'));
+        $request = $request->withAttribute('token', ["sub" => "opa", "iat" => 1516239022]);
+
+        $response = $collection->dispatch($request, $this->defaultResponse);
+
+    }
+
 }

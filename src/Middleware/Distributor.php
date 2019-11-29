@@ -33,7 +33,6 @@ namespace Segrax\OpenPolicyAgent\Middleware;
 
 use DirectoryIterator;
 use Exception;
-use InvalidArgumentException;
 use Phar;
 use PharData;
 use Psr\Log\LoggerInterface;
@@ -88,7 +87,7 @@ class Distributor implements MiddlewareInterface
     ) {
         if (empty($pOptions[self::OPT_POLICY_PATH])) {
             $this->log(LogLevel::EMERGENCY, 'opa-distributor has no policies');
-            throw new InvalidArgumentException('opa-distributor has no policies');
+            throw new Exception('opa-distributor has no policies');
         }
 
         $this->logger = $pLogger;
