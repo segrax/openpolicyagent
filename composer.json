@@ -1,0 +1,44 @@
+{
+    "name": "segrax/open-policy-agent",
+    "description": "",
+    "keywords": [
+        "middleware",
+        "psr-7",
+        "psr-15"
+    ],
+    "license": "MIT",
+
+    "autoload": {
+        "psr-4": {
+            "Segrax\\OpenPolicyAgent\\": "src/"
+        }
+    },
+
+    "autoload-dev": {
+        "psr-4": {
+            "Segrax\\OpenPolicyAgent\\Tests\\": "tests/"
+        }
+    },
+
+    "require": {
+        "php": ">=7.2",
+        "psr/log": "^1.0",
+        "psr/http-factory": "^1.0",
+        "psr/http-message": "^1.0",
+        "psr/http-server-handler": "^1.0",
+        "psr/http-server-middleware": "^1.0",
+		"guzzlehttp/guzzle": "^6.4"
+    },
+
+    "require-dev": {
+        "donatj/mock-webserver": "^2.1",
+        "equip/dispatch": "^2.0",
+        "phpunit/phpunit": "^8.4",
+        "slim/psr7": "^0.6.0",
+        "splitbrain/php-archive": "^1.1"
+    },
+
+    "suggest": {
+        "monolog/monolog": "Needed to support logging"
+    }
+}
