@@ -1,22 +1,32 @@
 {
     "name": "segrax/open-policy-agent",
-    "description": "",
+    "description": "Open Policy Agent client, PSR-7 and PSR-15 Authorization Middleware",
     "keywords": [
         "middleware",
         "psr-7",
-        "psr-15"
+        "psr-15",
+        "opa",
+        "authz"
     ],
+
     "license": "MIT",
+    "authors": [
+        {
+            "name": "Robert Crossfield",
+            "email": "",
+            "homepage": "https://github.com/segrax/"
+        }
+    ],
 
     "autoload": {
         "psr-4": {
-            "Segrax\\OpenPolicyAgent\\": "src/"
+            "Segrax\\OpenPolicyAgent\\": "src"
         }
     },
 
     "autoload-dev": {
         "psr-4": {
-            "Segrax\\OpenPolicyAgent\\Tests\\": "tests/"
+            "Segrax\\OpenPolicyAgent\\Tests\\": "tests"
         }
     },
 
