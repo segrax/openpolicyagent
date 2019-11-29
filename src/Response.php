@@ -31,8 +31,6 @@ declare(strict_types=1);
 
 namespace Segrax\OpenPolicyAgent;
 
-use Exception;
-use RuntimeException;
 use Segrax\OpenPolicyAgent\Exception\PolicyException;
 
 class Response
@@ -87,6 +85,8 @@ class Response
 
     /**
      * Get specific result
+     *
+     * @return mixed
      */
     public function getByName(string $pName)
     {
@@ -101,11 +101,17 @@ class Response
         return $this->result;
     }
 
+    /**
+     * Get the decisionID
+     */
     public function getDecisionID(): string
     {
         return $this->decisionid;
     }
 
+    /**
+     * Ge the explaination
+     */
     public function getExplain(): array
     {
         return $this->explain;
@@ -128,7 +134,7 @@ class Response
     }
 
     /**
-     * Does this result set have this value
+     * Does the result set have this key
      */
     public function has(string $pName): bool
     {

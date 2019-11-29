@@ -31,7 +31,6 @@ declare(strict_types=1);
 
 namespace Segrax\OpenPolicyAgent;
 
-use Exception;
 use RuntimeException;
 use UnexpectedValueException;
 use Psr\Log\LoggerInterface;

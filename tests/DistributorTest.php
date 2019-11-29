@@ -34,20 +34,27 @@ namespace Segrax\OpenPolicyAgent\Tests;
 use DirectoryIterator;
 use Equip\Dispatch\MiddlewareCollection;
 use Exception;
-use InvalidArgumentException;
 use Psr\Http\Message\ResponseInterface;
 use Segrax\OpenPolicyAgent\Middleware\Distributor;
 use Slim\Psr7\Factory\ResponseFactory;
 use Slim\Psr7\Factory\ServerRequestFactory;
 use Slim\Psr7\Factory\StreamFactory;
-use Slim\Psr7\Response;
 use splitbrain\PHPArchive\FileInfo;
 use splitbrain\PHPArchive\Tar;
 
 class DistributorTest extends Base
 {
     private const POLICY_PATH = __DIR__ . '/policies';
+
+    /**
+     * @var Callable
+     */
     private $defaultResponse;
+
+    /**
+     * @var array
+     */
+    private $defaultToken = ["sub" => "opa", "iat" => 1516239022];
 
     public function setUp(): void
     {
@@ -71,8 +78,7 @@ class DistributorTest extends Base
         ]);
         $request = (new ServerRequestFactory())->createFromGlobals();
         $request = $request->withUri($this->getUri($pPath));
-        $request = $request->withAttribute('token', !empty($pToken) ? $pToken : ["sub" => "opa", "iat" => 1516239022]);
-
+        $request = $request->withAttribute('token', !empty($pToken) ? $pToken : $this->defaultToken);
         return $collection->dispatch($request, $this->defaultResponse);
     }
 
@@ -162,10 +168,8 @@ class DistributorTest extends Base
 
         $request = (new ServerRequestFactory())->createFromGlobals();
         $request = $request->withUri($this->getUri('/opa/bundles/test'));
-        $request = $request->withAttribute('token', ["sub" => "opa", "iat" => 1516239022]);
-
-        $response = $collection->dispatch($request, $this->defaultResponse);
-
+        $request = $request->withAttribute('token', $this->defaultToken);
+        $collection->dispatch($request, $this->defaultResponse);
     }
 
 }
