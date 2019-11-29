@@ -47,6 +47,7 @@ class Authorization implements MiddlewareInterface
      * Option array keys
      */
     public const OPT_ATTRIBUTE_RESULT = 'attrResult';
+    public const OPT_ATTRIBUTE_INPUT_DEFAULT = 'attrResultDefault';
     public const OPT_ATTRIBUTE_INPUT  = 'attrInput';
     public const OPT_POLICY           = 'policy';
     public const OPT_POLICY_ALLOW     = 'policy_allow';
@@ -70,10 +71,12 @@ class Authorization implements MiddlewareInterface
      * @var array
      */
     private $options = [
-        self::OPT_ATTRIBUTE_RESULT  => 'openpolicyagent',
-        self::OPT_ATTRIBUTE_INPUT   => 'token',
-        self::OPT_POLICY            => '',
-        self::OPT_POLICY_ALLOW      => 'allow'
+        self::OPT_ATTRIBUTE_RESULT          => 'openpolicyagent',
+        self::OPT_ATTRIBUTE_INPUT           => 'token',
+        self::OPT_ATTRIBUTE_INPUT_DEFAULT   => ['sub' => ''],
+        self::OPT_POLICY                    => '',
+        self::OPT_POLICY_ALLOW              => 'allow',
+
     ];
 
     /**
@@ -122,17 +125,22 @@ class Authorization implements MiddlewareInterface
      */
     private function policyInputsPrepare(ServerRequestInterface $pRequest): array
     {
+        $input = [  'path'   => array_values(array_filter(explode('/', $pRequest->getUri()->getPath()))),
+                    'method' => $pRequest->getMethod()
+                 ];
+
         $name = $this->options[self::OPT_ATTRIBUTE_INPUT];
-        $attribute = $pRequest->getAttribute($name);
-        $input = [
-            $name    => $attribute ?? [],
-            'user'   => $attribute['sub'] ?? '',
-            'path'   => array_values(array_filter(explode('/', $pRequest->getUri()->getPath()))),
-            'method' => $pRequest->getMethod()
-        ];
+        $attribute = $pRequest->getAttribute($name, $this->options[self::OPT_ATTRIBUTE_INPUT_DEFAULT]);
+
+        $input[$name] = $attribute;
+        $input['user'] = $attribute['sub'] ?? '';
+
         return $input;
     }
 
+    /**
+     * Log if available
+     */
     private function log(string $pLevel, string $pMessage, array $pContext = []): void
     {
         if (!is_null($this->logger)) {
