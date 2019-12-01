@@ -68,7 +68,7 @@ class Engine
     public function __construct(array $pOptions, LoggerInterface $pLogger = null)
     {
         if (empty($pOptions[self::OPT_AGENT_URL])) {
-            throw new UnexpectedValueException($pOptions[self::OPT_AGENT_URL] . " is not set");
+            throw new UnexpectedValueException($pOptions[self::OPT_AGENT_URL] . ' is not set');
         }
 
         $this->logger = $pLogger;

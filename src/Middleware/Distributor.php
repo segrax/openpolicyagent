@@ -44,6 +44,9 @@ use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 
+/**
+ * Class for serving policies up to a running OPA Agent
+ */
 class Distributor implements MiddlewareInterface
 {
     public const OPT_ATTRIBUTE_TOKEN = 'attrToken';
@@ -77,7 +80,7 @@ class Distributor implements MiddlewareInterface
     ];
 
     /**
-     *
+     * Class Setup
      */
     public function __construct(
         array $pOptions,
@@ -97,7 +100,7 @@ class Distributor implements MiddlewareInterface
     }
 
     /**
-     * If OPA is attemting to fetch its bundle, lets serve it.
+     * Check if OPA is attemting to fetch its bundle, then pack and serve it.
      */
     public function process(ServerRequestInterface $pRequest, RequestHandlerInterface $pHandler): ResponseInterface
     {
@@ -109,6 +112,7 @@ class Distributor implements MiddlewareInterface
             return $pHandler->handle($pRequest);
         }
 
+        // If the subject is the OPA agent user, we provide the bundle
         if ($attribute['sub'] === $this->options[self::OPT_AGENT_USER]) {
             $bundleFile = $this->getBundle();
             $stream = $this->streamFactory->createStreamFromFile($bundleFile . '.gz', 'rb');
@@ -166,6 +170,9 @@ class Distributor implements MiddlewareInterface
         return $results;
     }
 
+    /**
+     * Log if available
+     */
     private function log(string $pLevel, string $pMessage, array $pContext = []): void
     {
         if (!is_null($this->logger)) {

@@ -41,16 +41,19 @@ use Psr\Log\LoggerInterface;
 use Psr\Log\LogLevel;
 use Segrax\OpenPolicyAgent\Engine;
 
+/**
+ * Class for providing an authorization layer to the middleware
+ */
 class Authorization implements MiddlewareInterface
 {
     /**
      * Option array keys
      */
-    public const OPT_ATTRIBUTE_RESULT = 'attrResult';
+    public const OPT_ATTRIBUTE_RESULT        = 'attrResult';
     public const OPT_ATTRIBUTE_INPUT_DEFAULT = 'attrResultDefault';
-    public const OPT_ATTRIBUTE_INPUT  = 'attrInput';
-    public const OPT_POLICY           = 'policy';
-    public const OPT_POLICY_ALLOW     = 'policy_allow';
+    public const OPT_ATTRIBUTE_INPUT         = 'attrInput';
+    public const OPT_POLICY                  = 'policy';
+    public const OPT_POLICY_ALLOW            = 'policy_allow';
 
     /**
      * @var Engine
@@ -80,7 +83,7 @@ class Authorization implements MiddlewareInterface
     ];
 
     /**
-     *
+     * Class Setup
      */
     public function __construct(
         array $pOptions,

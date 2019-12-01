@@ -34,14 +34,18 @@ namespace Segrax\OpenPolicyAgent\Exception;
 use RuntimeException;
 use Segrax\OpenPolicyAgent\Response as OpaResponse;
 
+/**
+ * Exception thrown when a policy fails to return a result
+ */
 class PolicyException extends RuntimeException
 {
     /**
      * @var OpaResponse
      */
     private $response;
+
     /**
-     *
+     * Class Setup
      */
     public function __construct(OpaResponse $pResponse, string $pMessage)
     {

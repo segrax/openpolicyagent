@@ -35,11 +35,11 @@ use Segrax\OpenPolicyAgent\Exception\PolicyException;
 
 class Response
 {
-    private const OPA_METRIC_ARRAY = 'metrics';
-    private const OPA_RESULT_ARRAY = 'result';
-    private const OPA_PROVENANCE_ARRAY = 'provenance';
     private const OPA_DECISIONID_ARRAY = 'decision_id';
     private const OPA_EXPLAIN_ARRAY = 'explanation';
+    private const OPA_METRIC_ARRAY = 'metrics';
+    private const OPA_PROVENANCE_ARRAY = 'provenance';
+    private const OPA_RESULT_ARRAY = 'result';
 
     /**
      * @var array

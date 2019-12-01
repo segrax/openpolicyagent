@@ -33,6 +33,9 @@ namespace Segrax\OpenPolicyAgent\Exception;
 
 use RuntimeException;
 
+/**
+ * Exception thrown when OPA fails to process a request
+ */
 class ServerException extends RuntimeException
 {
 /*  private const MsgCompileModuleError         = "error(s) occurred while compiling module(s)";
@@ -45,12 +48,16 @@ class ServerException extends RuntimeException
     private const MsgPluginConfigError          = "error(s) occurred while configuring plugin(s)";*/
     private const OPA_KEY_ERRORCODE   = 'code';
     private const OPA_KEY_ERRORMSG    = 'message';
-/**
+
+    /**
      * @var array
      */
     private $response = [];
-/**
+
+    /**
+     * Class Setup
      *
+     * Decode a JSON body, and load the error from it
      */
     public function __construct(string $pBody)
     {
