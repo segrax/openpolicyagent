@@ -42,6 +42,9 @@ use Slim\Psr7\Factory\StreamFactory;
 use splitbrain\PHPArchive\FileInfo;
 use splitbrain\PHPArchive\Tar;
 
+/**
+ * Set of tests for the PSR-15 Distributor middleware
+ */
 class DistributorTest extends Base
 {
     private const POLICY_PATH = __DIR__ . '/policies';
@@ -56,6 +59,9 @@ class DistributorTest extends Base
      */
     private $defaultToken = ["sub" => "opa", "iat" => 1516239022];
 
+    /**
+     * Setup a fail response to test for
+     */
     public function setUp(): void
     {
         parent::setUp();
@@ -67,6 +73,9 @@ class DistributorTest extends Base
         };
     }
 
+    /**
+     * Execute the Distributor middleware
+     */
     protected function executeMiddleware(string $pPath, array $pToken = []): ResponseInterface
     {
         $collection = new MiddlewareCollection([
@@ -82,6 +91,9 @@ class DistributorTest extends Base
         return $collection->dispatch($request, $this->defaultResponse);
     }
 
+    /**
+     * Get a list of files which can be put in a bundle
+     */
     private function getBundleFiles(string $pPath): array
     {
         $results = [];
@@ -89,7 +101,6 @@ class DistributorTest extends Base
             if ($file->isDot()) {
                 continue;
             }
-
             if ($file->isDir()) {
                 $results = array_merge($results, $this->getBundleFiles($file->getPathname()));
                 continue;
@@ -103,6 +114,9 @@ class DistributorTest extends Base
         return $results;
     }
 
+    /**
+     * Check the distributor returns all files in the policies folder
+     */
     public function testGetBundle(): void
     {
         $response = $this->executeMiddleware('/opa/bundles/test');
@@ -133,12 +147,18 @@ class DistributorTest extends Base
         $this->assertCount(0, $files);
     }
 
+    /**
+     * Ensure a 404 occurs with other paths
+     */
     public function testNonBundle(): void
     {
         $response = $this->executeMiddleware('/opa/otherpath');
         $this->assertEquals(404, $response->getStatusCode());
     }
 
+    /**
+     * Ensure an Exception occurs if the policy path is empty
+     */
     public function testNoPolicyPath(): void
     {
         $this->expectException(Exception::class);
@@ -149,12 +169,18 @@ class DistributorTest extends Base
         );
     }
 
+    /**
+     * Ensure other JWT sub's get a 404 on the bundle url
+     */
     public function testValidPathWrongSub(): void
     {
         $response = $this->executeMiddleware('/opa/bundles/test', ['sub' => 'me']);
         $this->assertEquals(404, $response->getStatusCode());
     }
 
+    /**
+     * Ensure using a path with no policies causes an Exception
+     */
     public function testEmptyPolicyPath(): void
     {
         $folder = sys_get_temp_dir() . DIRECTORY_SEPARATOR . uniqid();

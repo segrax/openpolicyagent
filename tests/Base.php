@@ -37,34 +37,49 @@ use PHPUnit\Framework\TestCase;
 use Segrax\OpenPolicyAgent\Engine;
 use Slim\Psr7\Uri;
 
+/**
+ * Base test class, provides mock-webserver functionality
+ */
 class Base extends TestCase
 {
     /** @var MockWebServer */
     protected static $server;
+
     /**
      * @var Engine
      */
     protected $engine;
+
     /**
      * @var array
      */
     protected $resultAllowTrue = ['result' => ['allow' => true]];
+
     /**
      * @var array
      */
     protected $resultAllowFalse = ['result' => ['allow' => false]];
 
+    /**
+     * Setup the mock server
+     */
     public static function setUpBeforeClass(): void
     {
         self::$server = new MockWebServer();
         self::$server->start();
     }
 
+    /**
+     * Setup the engine for each test
+     */
     public function setUp(): void
     {
         $this->engine = new Engine([Engine::OPT_AGENT_URL => self::$server->getServerRoot()]);
     }
 
+    /**
+     * Set the policy to return allow==true
+     */
     protected function setPolicyAllow(string $pName = 'auth/api'): void
     {
         self::$server->setResponseOfPath(
@@ -73,6 +88,9 @@ class Base extends TestCase
         );
     }
 
+    /**
+     * Set the policy to return allow==false
+     */
     protected function setPolicyDeny(string $pName = 'auth/api'): void
     {
         self::$server->setResponseOfPath(
@@ -81,12 +99,17 @@ class Base extends TestCase
         );
     }
 
-
+    /**
+     * Create a URI
+     */
     protected function getUri(string $pPath): Uri
     {
         return new Uri("HTTP", '127.0.0.1', null, $pPath);
     }
 
+    /**
+     * Get the base URL of the OPA agent
+     */
     protected function getBaseURL()
     {
         return '/' . Engine::OPA_API_VER;

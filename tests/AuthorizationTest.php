@@ -39,6 +39,9 @@ use Segrax\OpenPolicyAgent\Middleware\Authorization;
 use Slim\Psr7\Factory\ResponseFactory;
 use Slim\Psr7\Factory\ServerRequestFactory;
 
+/**
+ * Set of tests for the PSR-15 Authorization middleware
+ */
 class AuthorizationTest extends Base
 {
     /**
@@ -46,6 +49,9 @@ class AuthorizationTest extends Base
      */
     private $defaultResponse;
 
+    /**
+     * Set a default success response
+     */
     public function setUp(): void
     {
         parent::setUp();
@@ -57,6 +63,9 @@ class AuthorizationTest extends Base
         };
     }
 
+    /**
+     * Execute the middleware
+     */
     protected function executeMiddleware(string $pName, string $pPath): ResponseInterface
     {
         $collection = new MiddlewareCollection([
@@ -67,6 +76,9 @@ class AuthorizationTest extends Base
         return $collection->dispatch($request, $this->defaultResponse);
     }
 
+    /**
+     * Ensure an allow response results in reaching the action
+     */
     public function testAllow(): void
     {
         $this->setPolicyAllow('unittest/api');
@@ -75,6 +87,9 @@ class AuthorizationTest extends Base
         $this->assertEquals('Success', $response->getBody()->__toString());
     }
 
+    /**
+     * Ensure a deny response results in a 403 (Unauthorized)
+     */
     public function testDeny(): void
     {
         $this->setPolicyDeny('unittest/api');
@@ -83,6 +98,9 @@ class AuthorizationTest extends Base
         $this->assertEquals('', $response->getBody()->__toString());
     }
 
+    /**
+     * Ensure an InvalidArgumentException occurs if no policy name is provided
+     */
     public function testNoPolicyName(): void
     {
         $this->expectException(InvalidArgumentException::class);
