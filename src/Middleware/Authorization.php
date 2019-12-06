@@ -39,7 +39,7 @@ use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Log\InvalidArgumentException;
 use Psr\Log\LoggerInterface;
 use Psr\Log\LogLevel;
-use Segrax\OpenPolicyAgent\Engine;
+use Segrax\OpenPolicyAgent\Client;
 
 /**
  * Class for providing an authorization layer to the middleware
@@ -56,9 +56,9 @@ class Authorization implements MiddlewareInterface
     public const OPT_POLICY_ALLOW            = 'policy_allow';
 
     /**
-     * @var Engine
+     * @var Client
      */
-    private $engine;
+    private $client;
 
     /**
      * @var ?LoggerInterface
@@ -87,7 +87,7 @@ class Authorization implements MiddlewareInterface
      */
     public function __construct(
         array $pOptions,
-        Engine $pEngine,
+        Client $pClient,
         ResponseFactoryInterface $pResponseFactory,
         LoggerInterface $pLogger = null
     ) {
@@ -97,7 +97,7 @@ class Authorization implements MiddlewareInterface
             throw new InvalidArgumentException('opa-authz: no policy set');
         }
 
-        $this->engine = $pEngine;
+        $this->client = $pClient;
         $this->responseFactory = $pResponseFactory;
         $this->options = array_replace_recursive($this->options, $pOptions);
     }
@@ -108,7 +108,7 @@ class Authorization implements MiddlewareInterface
     public function process(ServerRequestInterface $pRequest, RequestHandlerInterface $pHandler): ResponseInterface
     {
         $input = $this->policyInputsPrepare($pRequest);
-        $result = $this->engine->policy($this->options[self::OPT_POLICY], $input, false, false, false, false);
+        $result = $this->client->policy($this->options[self::OPT_POLICY], $input, false, false, false, false);
         // Add the result as an attribute
         if (!empty($this->options[self::OPT_ATTRIBUTE_RESULT])) {
             $pRequest = $pRequest->withAttribute($this->options[self::OPT_ATTRIBUTE_RESULT], $result);
@@ -128,15 +128,14 @@ class Authorization implements MiddlewareInterface
      */
     private function policyInputsPrepare(ServerRequestInterface $pRequest): array
     {
-        $input = [  'path'   => array_values(array_filter(explode('/', $pRequest->getUri()->getPath()))),
-                    'method' => $pRequest->getMethod()
-                 ];
-
         $name = $this->options[self::OPT_ATTRIBUTE_INPUT];
         $attribute = $pRequest->getAttribute($name, $this->options[self::OPT_ATTRIBUTE_INPUT_DEFAULT]);
 
-        $input[$name] = $attribute;
-        $input['user'] = $attribute['sub'] ?? '';
+        $input = [  'path'   => array_values(array_filter(explode('/', $pRequest->getUri()->getPath()))),
+                    'method' => $pRequest->getMethod(),
+                    'user' => $attribute['sub'] ?? '',
+                    $name => $attribute
+                 ];
 
         return $input;
     }

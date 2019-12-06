@@ -34,7 +34,7 @@ namespace Segrax\OpenPolicyAgent\Tests;
 use donatj\MockWebServer\MockWebServer;
 use donatj\MockWebServer\Response;
 use PHPUnit\Framework\TestCase;
-use Segrax\OpenPolicyAgent\Engine;
+use Segrax\OpenPolicyAgent\Client;
 use Slim\Psr7\Uri;
 
 /**
@@ -46,9 +46,9 @@ class Base extends TestCase
     protected static $server;
 
     /**
-     * @var Engine
+     * @var Client
      */
-    protected $engine;
+    protected $client;
 
     /**
      * @var array
@@ -70,11 +70,11 @@ class Base extends TestCase
     }
 
     /**
-     * Setup the engine for each test
+     * Setup the Client for each test
      */
     public function setUp(): void
     {
-        $this->engine = new Engine([Engine::OPT_AGENT_URL => self::$server->getServerRoot()]);
+        $this->client = new Client([Client::OPT_AGENT_URL => self::$server->getServerRoot()]);
     }
 
     /**
@@ -112,6 +112,6 @@ class Base extends TestCase
      */
     protected function getBaseURL()
     {
-        return '/' . Engine::OPA_API_VER;
+        return '/' . Client::OPA_API_VER;
     }
 }

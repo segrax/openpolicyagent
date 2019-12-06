@@ -38,14 +38,19 @@ use GuzzleHttp\Client as HttpClient;
 use GuzzleHttp\Exception\ClientException as HttpClientException;
 use GuzzleHttp\Exception\RequestException as HttpException;
 use GuzzleHttp\Exception\ServerException as HttpServerException;
+use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LogLevel;
 use Segrax\OpenPolicyAgent\Exception\ServerException;
 use Segrax\OpenPolicyAgent\Response as OpaResponse;
 
-class Engine
+/**
+ * 
+ */
+class Client
 {
     public const OPA_API_VER   = 'v1';
     public const OPT_AGENT_URL  = 'agent_url';
+    public const OPT_AUTH_TOKEN = 'bearer_token';
 
     /**
      * @var ?LoggerInterface
@@ -55,12 +60,18 @@ class Engine
     /**
      * @var array
      */
-    private $httpHeaders = ['headers' => ['Content-Type' => 'application/json']];
+    private $httpHeadersJson = ['Content-Type' => 'application/json'];
 
     /**
      * @var array
      */
-    private $options = [self::OPT_AGENT_URL => ''];
+    private $httpHeadersText = ['Content-Type' => 'text/plain'];
+
+    /**
+     * @var array
+     */
+    private $options = [self::OPT_AGENT_URL  => '',
+                        self::OPT_AUTH_TOKEN => ''];
 
     /**
      * Class Setup
@@ -83,23 +94,40 @@ class Engine
     public function getAgentVersion(): array
     {
         $url = $this->getUrlQuery($this->getDataUrl(), false, false, false, true);
-        $result = $this->execute($url);
+        $result = $this->executePost($url);
         return $result->getVersion();
+    }
+
+    /**
+     * Create or Update a document
+     */
+    public function dataUpdate(string $pDataName, string $pContent): array
+    {
+        return $this->executePut($this->getDataUrl($pDataName), true, $pContent);
+    }
+
+    /**
+     * Create or Update a policy on the agent
+     */
+    public function policyUpdate(string $pPolicyName, string $pContent, bool $pMetrics): array
+    {
+        $url = $this->getUrlQuery($this->getPolicyUrl($pPolicyName), false, $pMetrics, false, false);
+        return $this->executePut($url, false, $pContent);
     }
 
     /**
      * Execute a policy
      */
     public function policy(
-        string $pPolicy,
+        string $pPolicyName,
         array $pInputData,
         bool $pExplain,
         bool $pMetrics,
         bool $pInstrument,
         bool $pProvenance
     ): OpaResponse {
-        $url = $this->getUrlQuery($this->getDataUrl($pPolicy), $pExplain, $pMetrics, $pInstrument, $pProvenance);
-        return $this->execute($url, json_encode(['input' => $pInputData]));
+        $url = $this->getUrlQuery($this->getDataUrl($pPolicyName), $pExplain, $pMetrics, $pInstrument, $pProvenance);
+        return $this->executePost($url, ['input' => $pInputData]);
     }
 
     /**
@@ -113,21 +141,48 @@ class Engine
         bool $pProvenance
     ): OpaResponse {
         $url = $this->getUrlQuery($this->getQueryUrl(), $pExplain, $pMetrics, $pInstrument, $pProvenance);
-        return $this->execute($url, json_encode(['query' => $pQuery]));
+        return $this->executePost($url, ['query' => $pQuery]);
+    }
+
+    /**
+     * Execute a POST
+     */
+    private function executePost(string $pUrl, array $pContent = []): OpaResponse
+    {
+        $response = $this->execute('POST', $pUrl, true, json_encode($pContent, JSON_THROW_ON_ERROR));
+        return new OpaResponse($response);
+    }
+
+    /**
+     * Execute a PUT
+     */
+    private function executePut(string $pUrl, bool $pJson, string $pBody = ""): array
+    {
+        $response = $this->execute('PUT', $pUrl, $pJson, $pBody);
+
+        // Success with no content
+        if ($response->getStatusCode() === 204) {
+            return [];
+        }
+
+        return json_decode($response->getBody()->__toString(), true);
     }
 
     /**
      * Execute a request
      */
-    private function execute(string $pUrl, string $pBody = ""): OpaResponse
+    private function execute(string $pMethod, string $pUrl, bool $pJson, string $pBody = ""): ResponseInterface
     {
-        $client = new HttpClient($this->httpHeaders);
-        $opaResponse = new OpaResponse();
+        $headers = ($pJson === true) ? $this->httpHeadersJson : $this->httpHeadersText;
+        if (!empty($this->options[self::OPT_AUTH_TOKEN])) {
+            $headers['Authorization'] = 'Bearer ' . $this->options[self::OPT_AUTH_TOKEN];
+        }
+
         try {
-            $response = $client->request('POST', $pUrl, ['body' => $pBody]);
-            $opaResponse->fromJson($response->getBody()->__toString());
+            $client = new HttpClient(['headers' => $headers]);
+            $response = $client->request($pMethod, $pUrl, ['body' => $pBody]);
         } catch (HttpClientException | HttpServerException $exception) {
-            $this->log(LogLevel::ERROR, "opa-engine: Error", [$pUrl, $pBody]);
+            $this->log(LogLevel::ERROR, "opa-Client: Error", [$pUrl, $pBody]);
             $response = $exception->getResponse();
             // Can this ever be null?
             if (is_null($response)) {
@@ -137,10 +192,11 @@ class Engine
             }
             throw new ServerException($response->getBody()->__toString());
         } catch (HttpException $exception) {
-            $this->log(LogLevel::ERROR, "opa-engine: Not Available", [$pUrl]);
-            throw new RuntimeException("OPA Engine unavailable: " . $exception->getMessage(), 0, $exception);
+            $this->log(LogLevel::ERROR, "opa-Client: Not Available", [$pUrl]);
+            throw new RuntimeException("OPA Client unavailable: " . $exception->getMessage(), 0, $exception);
         }
-        return $opaResponse;
+
+        return $response;
     }
 
     /**
@@ -189,13 +245,24 @@ class Engine
     }
 
     /**
-     * GEt the url to the query API
+     * Get the url to the query API
      */
     private function getQueryUrl(): string
     {
-        return $this->getBaseUrl() . "query";
+        return $this->getBaseUrl() . 'query';
     }
 
+    /**
+     * Get the url to the policy API
+     */
+    private function getPolicyUrl(string $pName): string
+    {
+        return $this->getBaseUrl() . "policies/$pName";
+    }
+
+    /**
+     * Log if available
+     */
     private function log(string $pLevel, string $pMessage, array $pContext = []): void
     {
         if (!is_null($this->logger)) {

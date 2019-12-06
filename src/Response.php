@@ -31,8 +31,12 @@ declare(strict_types=1);
 
 namespace Segrax\OpenPolicyAgent;
 
+use Psr\Http\Message\ResponseInterface;
 use Segrax\OpenPolicyAgent\Exception\PolicyException;
 
+/**
+ * Holds a response from OPA
+ */
 class Response
 {
     private const OPA_DECISIONID_ARRAY = 'decision_id';
@@ -67,11 +71,11 @@ class Response
     private $decisionid = '';
 
     /**
-     * Populate from JSON
+     * Create from a HTTP response
      */
-    public function fromJson(string $pData): void
+    public function __construct(ResponseInterface $pResponse)
     {
-        $data = json_decode((string) $pData, true);
+        $data = json_decode($pResponse->getBody()->__toString(), true);
         $this->decisionid = $data[self::OPA_DECISIONID_ARRAY] ?? '';
         $this->explain = $data[self::OPA_EXPLAIN_ARRAY] ?? [];
         $this->result = $data[self::OPA_RESULT_ARRAY] ?? [];

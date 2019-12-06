@@ -48,6 +48,7 @@ use splitbrain\PHPArchive\Tar;
 class DistributorTest extends Base
 {
     private const POLICY_PATH = __DIR__ . '/policies';
+    private const FAIL_BODY = 'Fail';
 
     /**
      * @var Callable
@@ -68,7 +69,7 @@ class DistributorTest extends Base
         $this->defaultResponse = function () {
 
             $response = (new ResponseFactory())->createResponse(404);
-            $response->getBody()->write('Fail');
+            $response->getBody()->write(self::FAIL_BODY);
             return $response;
         };
     }
@@ -132,9 +133,13 @@ class DistributorTest extends Base
         $tar->open($tmpFile);
         // Get the files in the policy folder to compare against
         $files = $this->getBundleFiles(self::POLICY_PATH);
+        $this->assertGreaterThan(0, count($files));
+
+        $contents = $tar->contents();
+        $this->assertGreaterThan(0, count($contents));
 
         // Ensure all files made it
-        foreach ($tar->contents() as $file) {
+        foreach ($contents as $file) {
             /** @var FileInfo $file */
             foreach ($files as $localKey => $fileLocal) {
                 if ($file->getPath() === $fileLocal[1]) {
@@ -154,6 +159,7 @@ class DistributorTest extends Base
     {
         $response = $this->executeMiddleware('/opa/otherpath');
         $this->assertEquals(404, $response->getStatusCode());
+        $this->assertEquals(self::FAIL_BODY, $response->getBody()->__toString());
     }
 
     /**
@@ -176,6 +182,7 @@ class DistributorTest extends Base
     {
         $response = $this->executeMiddleware('/opa/bundles/test', ['sub' => 'me']);
         $this->assertEquals(404, $response->getStatusCode());
+        $this->assertEquals(self::FAIL_BODY, $response->getBody()->__toString());
     }
 
     /**
@@ -184,7 +191,6 @@ class DistributorTest extends Base
     public function testEmptyPolicyPath(): void
     {
         $folder = sys_get_temp_dir() . DIRECTORY_SEPARATOR . uniqid();
-        $this->expectException(Exception::class);
         $collection = new MiddlewareCollection([
             new Distributor(
                 [Distributor::OPT_POLICY_PATH => $folder],
@@ -195,7 +201,8 @@ class DistributorTest extends Base
         $request = (new ServerRequestFactory())->createFromGlobals();
         $request = $request->withUri($this->getUri('/opa/bundles/test'));
         $request = $request->withAttribute('token', $this->defaultToken);
+
+        $this->expectException(Exception::class);
         $collection->dispatch($request, $this->defaultResponse);
     }
-
 }

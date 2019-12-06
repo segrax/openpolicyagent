@@ -15,20 +15,21 @@ composer require segrax/openpolicyagent
 ## Usage
 
 ``` php
-use Segrax\OpenPolicyAgent\Engine;
+use Segrax\OpenPolicyAgent\Client;
 use Segrax\OpenPolicyAgent\Middleware\Authorization;
 
 $app = AppFactory::create();
 
-$engine = new Engine([Engine::OPT_AGENT_URL => 'http://127.0.0.1:8181/']);
+$client = new Client([Client::OPT_AGENT_URL => 'http://127.0.0.1:8181/']);
 $app->add(new Authorization(
-                ['policy' => 'auth/api'],
-                $engine,
+                [Authorization::OPT_POLICY => 'auth/api'],
+                $client,
                 $app->getResponseFactory()));
 
 ```
 
 ## Authorization Middleware
+
 
 ## Distributor Middleware
 
@@ -38,6 +39,7 @@ $app->add(new Authorization(
 ``` bash
 make tests
 ```
+
 ## Security
 
 If you discover any security related issues, please email segrax@ instead of using the issue tracker.

@@ -12,7 +12,7 @@
          stopOnFailure="false">
 		 
 	<testsuites>
-        <testsuite name="Tests">
+        <testsuite name="segrax/openpolicyagent">
         <directory>./tests</directory>
         </testsuite>
     </testsuites>

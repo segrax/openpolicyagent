@@ -115,7 +115,7 @@ class Distributor implements MiddlewareInterface
         // If the subject is the OPA agent user, we provide the bundle
         if ($attribute['sub'] === $this->options[self::OPT_AGENT_USER]) {
             $bundleFile = $this->getBundle();
-            $stream = $this->streamFactory->createStreamFromFile($bundleFile . '.gz', 'rb');
+            $stream = $this->streamFactory->createStreamFromFile($bundleFile, 'rb');
             $response = $this->responseFactory->createResponse(200)
                 ->withHeader('Content-Type', 'application/gzip')
                 ->withBody($stream);
@@ -137,13 +137,14 @@ class Distributor implements MiddlewareInterface
             foreach ($this->getBundleFiles($this->options[self::OPT_POLICY_PATH]) as $file) {
                 $bundle->addFile($file[0], $file[1]);
             }
+
             $bundle->compress(Phar::GZ);
         } catch (Exception $e) {
             $this->log(LogLevel::EMERGENCY, 'opa-distributor: Failed to build OPA bundle', [$e]);
             throw new Exception('opa-distributor: Failed to build OPA bundle');
         }
 
-        return $filename;
+        return $filename . '.gz';
     }
 
     /**
@@ -152,6 +153,7 @@ class Distributor implements MiddlewareInterface
     private function getBundleFiles(string $pPath): array
     {
         $results = [];
+
         foreach (new DirectoryIterator($pPath) as $file) {
             if ($file->isDot()) {
                 continue;

@@ -33,16 +33,16 @@ namespace Segrax\OpenPolicyAgent\Tests;
 
 use donatj\MockWebServer\Response;
 use RuntimeException;
-use Segrax\OpenPolicyAgent\Engine;
+use Segrax\OpenPolicyAgent\Client;
 use Segrax\OpenPolicyAgent\Exception\PolicyException;
 use Segrax\OpenPolicyAgent\Exception\ServerException;
 use Segrax\OpenPolicyAgent\Response as OpaResponse;
 use UnexpectedValueException;
 
 /**
- * Set of tests of the OPA Engine class
+ * Set of tests of the OPA Client class
  */
-class EngineTest extends Base
+class ClientTest extends Base
 {
     /**
      * @var array Version information
@@ -82,12 +82,12 @@ class EngineTest extends Base
     ];
 
     /**
-     * Test no URL provided to engine
+     * Test no URL provided to Client
      */
     public function testNoURLException(): void
     {
         $this->expectException(UnexpectedValueException::class);
-        new Engine([Engine::OPT_AGENT_URL => '']);
+        new Client([Client::OPT_AGENT_URL => '']);
     }
 
     /**
@@ -96,7 +96,7 @@ class EngineTest extends Base
     public function testPolicyResponse(): void
     {
         $this->setPolicyAllow('auth/api');
-        $response = $this->engine->policy('auth/api', [], false, false, false, false);
+        $response = $this->client->policy('auth/api', [], false, false, false, false);
         $this->assertArrayHasKey('allow', $response->getResults());
         $this->assertTrue($response->has('allow'));
         $this->assertTrue($response->getByName('allow'));
@@ -111,7 +111,7 @@ class EngineTest extends Base
             $this->getBaseURL() . '/data/',
             new Response(json_encode($this->resultAllowTrue + $this->resultVersion))
         );
-        $version = $this->engine->getAgentVersion();
+        $version = $this->client->getAgentVersion();
         $this->assertCount(4, $version);
         $this->assertEquals($this->resultVersion['provenance'], $version);
     }
@@ -125,7 +125,7 @@ class EngineTest extends Base
             $this->getBaseURL() . '/query',
             new Response($this->resultQueryJson)
         );
-        $response = $this->engine->query('{"user": ["alice"]}', true, true, true, false);
+        $response = $this->client->query('{"user": ["alice"]}', true, true, true, false);
         $expected = json_decode($this->resultQueryJson, true);
         $this->assertEquals($expected['explanation'], $response->getExplain());
         $this->assertEquals($expected['metrics'], $response->getMetrics());
@@ -143,7 +143,7 @@ class EngineTest extends Base
             new Response(json_encode($this->resultError), [], 500)
         );
         $this->expectException(ServerException::class);
-        $this->engine->policy('fail/asd', [], false, false, false, false);
+        $this->client->policy('fail/asd', [], false, false, false, false);
     }
 
     /**
@@ -151,9 +151,9 @@ class EngineTest extends Base
      */
     public function testAgentFail(): void
     {
-        $this->engine = new Engine([Engine::OPT_AGENT_URL => 'http://inval']);
+        $this->client = new Client([Client::OPT_AGENT_URL => 'http://inval']);
         $this->expectException(RuntimeException::class);
-        $this->engine->policy('failed', [], false, false, false, false);
+        $this->client->policy('failed', [], false, false, false, false);
     }
 
     /**
@@ -166,7 +166,7 @@ class EngineTest extends Base
             new Response("", [], 404)
         );
         $this->expectException(RuntimeException::class);
-        $this->engine->policy('failed', [], false, false, false, false);
+        $this->client->policy('failed', [], false, false, false, false);
     }
 
     /**
@@ -179,6 +179,74 @@ class EngineTest extends Base
             new Response("", [], 200)
         );
         $this->expectException(PolicyException::class);
-        $this->engine->policy('failed', [], false, false, false, false);
+        $this->client->policy('failed', [], false, false, false, false);
+    }
+
+    /**
+     * Ensure a successful policy update returns an empty response
+     */
+    public function testPolicyUpdate(): void
+    {
+        self::$server->setResponseOfPath(
+            $this->getBaseURL() . '/policies/some/policy',
+            new Response(json_encode([]), [], 200)
+        );
+        $result = $this->client->policyUpdate('some/policy', 'some content', false);
+        $this->assertEmpty($result);
+    }
+
+    /**
+     * Ensure a bad policy update throws a RuntimeException
+     */
+    public function testPolicyUpdateFail(): void
+    {
+        self::$server->setResponseOfPath(
+            $this->getBaseURL() . '/policies/some/policy',
+            new Response(json_encode([$this->resultError]), [], 400)
+        );
+        $this->expectException(RuntimeException::class);
+        $this->client->policyUpdate('some/policy', 'some content', false);
+    }
+
+    /**
+     * Ensure a ServerException populates its members correctly
+     */
+    public function testServerException(): void
+    {
+        $exception = new ServerException(json_encode($this->resultError));
+        $this->assertEquals($this->resultError['code'], $exception->getOpaCode());
+        $this->assertEquals($this->resultError['message'], $exception->getMessage());
+        $this->assertEquals($this->resultError['errors'], $exception->getErrors());
+    }
+
+    /**
+     * Ensure a bearer token setup works
+     *
+     * Unfortunately the MockWebServer cant be setup to check for tokens yet
+     */
+    public function testToken(): void
+    {
+        self::$server->setResponseOfPath(
+            $this->getBaseURL() . '/data/auth/apia',
+            new Response(json_encode($this->resultAllowTrue), [], 200)
+        );
+        $Client = new Client([  Client::OPT_AGENT_URL => self::$server->getServerRoot(),
+                                Client::OPT_AUTH_TOKEN => 'TOKEN']);
+        $response = $Client->policy('auth/apia', [], false, false, false, false);
+        $this->assertArrayHasKey('allow', $response->getResults());
+        $this->assertTrue($response->getByName('allow'));
+    }
+
+    /**
+     * Ensure a sucessful data update returns an empty array
+     */
+    public function testDataUpdate(): void
+    {
+        self::$server->setResponseOfPath(
+            $this->getBaseURL() . '/data/mine',
+            new Response(json_encode($this->resultAllowTrue), [], 204)
+        );
+        $result = $this->client->dataUpdate('mine', json_encode(['this'=>'value']));
+        $this->assertCount(0, $result);
     }
 }

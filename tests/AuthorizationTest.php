@@ -69,7 +69,7 @@ class AuthorizationTest extends Base
     protected function executeMiddleware(string $pName, string $pPath): ResponseInterface
     {
         $collection = new MiddlewareCollection([
-            new Authorization([Authorization::OPT_POLICY => $pName], $this->engine, new ResponseFactory())
+            new Authorization([Authorization::OPT_POLICY => $pName], $this->client, new ResponseFactory())
         ]);
         $request = (new ServerRequestFactory())->createFromGlobals();
         $request = $request->withUri($this->getUri($pPath));
@@ -104,6 +104,6 @@ class AuthorizationTest extends Base
     public function testNoPolicyName(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        new Authorization([Authorization::OPT_POLICY => ''], $this->engine, new ResponseFactory());
+        new Authorization([Authorization::OPT_POLICY => ''], $this->client, new ResponseFactory());
     }
 }

@@ -48,11 +48,39 @@ class ServerException extends RuntimeException
     private const MsgPluginConfigError          = "error(s) occurred while configuring plugin(s)";*/
     private const OPA_KEY_ERRORCODE   = 'code';
     private const OPA_KEY_ERRORMSG    = 'message';
+    private const OPA_KEY_ERRORS      = 'errors';
+
+    /*
+        {
+        "code": "invalid_parameter",
+        "message": "error(s) occurred while compiling module(s)",
+        "errors": [
+            {
+            "code": "rego_type_error",
+            "message": "multiple default rules named allow found",
+            "location": {
+                "file": "authz.rego",
+                "row": 3,
+                "col": 1
+            }
+            }
+        ]}
+    */
 
     /**
      * @var array
      */
     private $response = [];
+
+    /**
+     * @var array
+     */
+    private $errors = [];
+
+    /**
+     * @var string
+     */
+    private $opaCode = '';
 
     /**
      * Class Setup
@@ -66,6 +94,28 @@ class ServerException extends RuntimeException
             throw new RuntimeException("ServerException occured, but data missing");
         }
 
-        parent::__construct($this->response[self::OPA_KEY_ERRORCODE] . ": " . $this->response[self::OPA_KEY_ERRORMSG]);
+        $this->opaCode = $this->response[self::OPA_KEY_ERRORCODE];
+
+        if (isset($this->response[self::OPA_KEY_ERRORS])) {
+            $this->errors = $this->response[self::OPA_KEY_ERRORS];
+        }
+
+        parent::__construct($this->response[self::OPA_KEY_ERRORMSG]);
+    }
+
+    /**
+     * Get the OPA error code
+     */
+    public function getOpaCode(): string
+    {
+        return $this->opaCode;
+    }
+
+    /**
+     * Get the erorrs
+     */
+    public function getErrors(): array
+    {
+        return $this->errors;
     }
 }

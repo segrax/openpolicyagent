@@ -1,0 +1,9 @@
+language: php
+php:
+    - 7.3
+
+services:
+  - docker
+
+script:
+  - make test
