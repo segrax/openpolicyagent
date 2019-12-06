@@ -1,9 +1,11 @@
 language: php
-php:
-    - 7.3
 
 services:
   - docker
 
 script:
+  - make composer-install-dev
   - make test
+
+after_success:
+    - bash <(curl -s https://codecov.io/bash)

@@ -44,7 +44,7 @@ use Segrax\OpenPolicyAgent\Exception\ServerException;
 use Segrax\OpenPolicyAgent\Response as OpaResponse;
 
 /**
- * 
+ *
  */
 class Client
 {

@@ -3,6 +3,9 @@
 This library provides an interface to the Open Policy Agent (OPA), a PSR-15 authorization middleware and a PSR-15 bundle distributor middleware.
 
 [![Software License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](LICENSE.md)
+[![Build Status](https://travis-ci.com/segrax/openpolicyagent.svg&branch=master)](https://travis-ci.com/segrax/openpolicyagent)
+[![codecov](https://codecov.io/gh/segrax/openpolicyagent/branch/master/graph/badge.svg)](https://codecov.io/gh/segrax/openpolicyagent)
+
 
 ## Install
 
@@ -42,7 +45,7 @@ make tests
 
 ## Security
 
-If you discover any security related issues, please email segrax@ instead of using the issue tracker.
+If you discover any security related issues, please email [segrax19@gmail.com](mailto:segrax19@gmail.com) instead of using the issue tracker.
 
 ## License
 
