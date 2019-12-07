@@ -1,23 +1,53 @@
 # Open Policy Agent Library
 
-This library provides an interface to the Open Policy Agent (OPA), a PSR-15 authorization middleware and a PSR-15 bundle distributor middleware.
+This library provides a client for the Open Policy Agent (OPA), a PSR-15 authorization middleware and a PSR-15 bundle distributor middleware.
 
-[![Software License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](LICENSE.md)
-[![Build Status](https://travis-ci.com/segrax/openpolicyagent.svg&branch=master)](https://travis-ci.com/segrax/openpolicyagent)
+
+[![Latest Version](https://img.shields.io/packagist/v/segrax/open-policy-agent)](https://packagist.org/packages/segrax/open-policy-agent)
+[![Packagist](https://img.shields.io/packagist/dm/segrax/open-policy-agent)](https://packagist.org/packages/segrax/open-policy-agent)
+[![Software License](https://img.shields.io/badge/license-MIT-brightgreen.svg)](LICENSE.md)
+[![Build Status](https://api.travis-ci.com/segrax/openpolicyagent.svg)](https://travis-ci.com/segrax/openpolicyagent)
 [![codecov](https://codecov.io/gh/segrax/openpolicyagent/branch/master/graph/badge.svg)](https://codecov.io/gh/segrax/openpolicyagent)
 
 
 ## Install
-
 Install the latest using [composer](https://getcomposer.org/).
-
 ``` bash
 composer require segrax/openpolicyagent
 ```
 
-## Usage
+### Usage Examples
+For ready to use examples, please see [segrax/opa-php-examples](https://github.com/segrax/opa-php-examples)
 
-``` php
+### Client Usage
+```php
+use Segrax\OpenPolicyAgent\Client;
+
+$apiPolicy = "package my.api
+              default allow=false
+              allow {
+                  input.path = [\"abc\"]
+                  input.user == \"a random user\"
+              }";
+
+$client = new Client([ Client::OPT_AGENT_URL => 'http://127.0.0.1:8181/', Client::OPT_AUTH_TOKEN => 'MyToken']);
+
+// Push a policy to the agent
+$client->policyUpdate('my/api', $apiPolicy, false);
+
+// Execute the policy
+$inputs = [ 'path' => ['abc'],
+            'user' => 'a random user'];
+
+$res = $client->policy('my/api', $inputs, false, false, false, false );
+if ($res->getByName('allow') === true ) {
+    // Do stuff
+}
+```
+
+### Authorization Middleware
+Create the client, and add the Authorization object onto the middleware stack
+```php
 use Segrax\OpenPolicyAgent\Client;
 use Segrax\OpenPolicyAgent\Middleware\Authorization;
 
@@ -31,14 +61,21 @@ $app->add(new Authorization(
 
 ```
 
-## Authorization Middleware
+### Distributor Middleware
+```php
+use Segrax\OpenPolicyAgent\Client;
+use Segrax\OpenPolicyAgent\Middleware\Distributor;
 
+$app = AppFactory::create();
 
-## Distributor Middleware
+$app->add(new Distributor(
+                        [Distributor::OPT_POLICY_PATH => __DIR__ . '/opa'],
+                        $app->getResponseFactory(),
+                        new StreamFactory(),
+                        $app->getLogger()));
+```
 
-
-## Testing
-
+## Code Testing
 ``` bash
 make tests
 ```
