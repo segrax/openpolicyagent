@@ -49,6 +49,7 @@
     },
 
     "suggest": {
+        "tuupola/slim-jwt-auth": "Can be used to validate JWTs and insert them into the request",
         "monolog/monolog": "Can be used to support logging"
     }
 }

@@ -62,6 +62,8 @@ $app->add(new Authorization(
 ```
 
 ### Distributor Middleware
+Insert the middleware, it will respond to bundle requests at /opa/bundles/{service_name} for users with a valid JWT with the subfield 'opa'
+
 ```php
 use Segrax\OpenPolicyAgent\Client;
 use Segrax\OpenPolicyAgent\Middleware\Distributor;
@@ -69,10 +71,17 @@ use Segrax\OpenPolicyAgent\Middleware\Distributor;
 $app = AppFactory::create();
 
 $app->add(new Distributor(
-                        [Distributor::OPT_POLICY_PATH => __DIR__ . '/opa'],
+                        [Distributor::OPT_POLICY_PATH => __DIR__ . '/opa',
+                         Distributor::OPT_AGENT_USER => 'opa'],
                         $app->getResponseFactory(),
                         new StreamFactory(),
                         $app->getLogger()));
+
+// Add a GET route for the opa bundle route
+$app->get('/opa/bundles/{name}', function (Request $request, Response $response, array $args) {
+    return $response->withStatus(404);
+});
+
 ```
 
 ## Code Testing
