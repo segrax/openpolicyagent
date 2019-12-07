@@ -29,7 +29,8 @@ $apiPolicy = "package my.api
                   input.user == \"a random user\"
               }";
 
-$client = new Client([ Client::OPT_AGENT_URL => 'http://127.0.0.1:8181/', Client::OPT_AUTH_TOKEN => 'MyToken']);
+$client = new Client([ Client::OPT_AGENT_URL => 'http://127.0.0.1:8181/',
+                       Client::OPT_AUTH_TOKEN => 'MyToken']);
 
 // Push a policy to the agent
 $client->policyUpdate('my/api', $apiPolicy, false);
@@ -90,7 +91,7 @@ make tests
 
 ## Security
 
-If you discover any security related issues, please email [segrax19@gmail.com](mailto:segrax19@gmail.com) instead of using the issue tracker.
+If you discover any security related issues, please email [segrax19@gmail.com](mailto:segrax19@gmail.com).
 
 ## License
 
