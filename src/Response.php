@@ -46,14 +46,9 @@ class Response
     private const OPA_RESULT_ARRAY = 'result';
 
     /**
-     * @var array
+     * @var string
      */
-    private $result = [];
-
-    /**
-     * @var array
-     */
-    private $metrics = [];
+    private $decisionid = '';
 
     /**
      * @var array
@@ -63,12 +58,17 @@ class Response
     /**
      * @var array
      */
-    private $version = [];
+    private $metrics = [];
 
     /**
-     * @var string
+     * @var array
      */
-    private $decisionid = '';
+    private $result = [];
+
+    /**
+     * @var array
+     */
+    private $version = [];
 
     /**
      * Create from a HTTP response
@@ -78,8 +78,8 @@ class Response
         $data = json_decode($pResponse->getBody()->__toString(), true);
         $this->decisionid = $data[self::OPA_DECISIONID_ARRAY] ?? '';
         $this->explain = $data[self::OPA_EXPLAIN_ARRAY] ?? [];
-        $this->result = $data[self::OPA_RESULT_ARRAY] ?? [];
         $this->metrics = $data[self::OPA_METRIC_ARRAY] ?? [];
+        $this->result = $data[self::OPA_RESULT_ARRAY] ?? [];
         $this->version = $data[self::OPA_PROVENANCE_ARRAY] ?? [];
 
         if (!isset($data[self::OPA_RESULT_ARRAY])) {
@@ -88,7 +88,7 @@ class Response
     }
 
     /**
-     * Get specific result
+     * Get a specific result by its name
      *
      * @return mixed
      */

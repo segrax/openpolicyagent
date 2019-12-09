@@ -44,7 +44,7 @@ use Segrax\OpenPolicyAgent\Exception\ServerException;
 use Segrax\OpenPolicyAgent\Response as OpaResponse;
 
 /**
- *
+ * Provides an interface to an OPA instance
  */
 class Client
 {
@@ -261,7 +261,7 @@ class Client
     }
 
     /**
-     * Log if available
+     * Log if logger is available
      */
     private function log(string $pLevel, string $pMessage, array $pContext = []): void
     {
