@@ -8,7 +8,7 @@ This library provides a client for the [Open Policy Agent](https://www.openpolic
 [![Build Status](https://api.travis-ci.com/segrax/openpolicyagent.svg)](https://travis-ci.com/segrax/openpolicyagent)
 [![codecov](https://codecov.io/gh/segrax/openpolicyagent/branch/master/graph/badge.svg)](https://codecov.io/gh/segrax/openpolicyagent)
 
-For working examples, please see [segrax/opa-php-examples](https://github.com/segrax/opa-php-examples).
+For working examples, please see [segrax/opa-php-examples](https://github.com/segrax/opa-php-examples) and a [walkthrough](https://coil.com/p/segra/OPA-for-API-Authorization-with-Slim-PHP/H-7YsQL2m) is available to guide you through the examples.
 
 ## Install
 Install the latest using [composer](https://getcomposer.org/).
