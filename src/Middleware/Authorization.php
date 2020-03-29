@@ -31,6 +31,7 @@ declare(strict_types=1);
 
 namespace Segrax\OpenPolicyAgent\Middleware;
 
+use Exception;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
@@ -40,6 +41,8 @@ use Psr\Log\InvalidArgumentException;
 use Psr\Log\LoggerInterface;
 use Psr\Log\LogLevel;
 use Segrax\OpenPolicyAgent\Client;
+use Segrax\OpenPolicyAgent\Exception\PolicyException;
+use Segrax\OpenPolicyAgent\Response;
 
 /**
  * Class for providing an authorization layer to the middleware
@@ -54,6 +57,7 @@ class Authorization implements MiddlewareInterface
     public const OPT_ATTRIBUTE_INPUT         = 'attrInput';
     public const OPT_POLICY                  = 'policy';
     public const OPT_POLICY_ALLOW            = 'policy_allow';
+    public const OPT_POLICY_MISSING_CALLBACK = 'policy_missing_callback';
 
     /**
      * @var Client
@@ -79,6 +83,7 @@ class Authorization implements MiddlewareInterface
         self::OPT_ATTRIBUTE_INPUT_DEFAULT   => ['sub' => ''],
         self::OPT_POLICY                    => '',
         self::OPT_POLICY_ALLOW              => 'allow',
+        self::OPT_POLICY_MISSING_CALLBACK   => null
 
     ];
 
@@ -108,7 +113,17 @@ class Authorization implements MiddlewareInterface
     public function process(ServerRequestInterface $pRequest, RequestHandlerInterface $pHandler): ResponseInterface
     {
         $input = $this->policyInputsPrepare($pRequest);
-        $result = $this->client->policy($this->options[self::OPT_POLICY], $input, false, false, false, false);
+        try {
+            $result = $this->client->policy($this->options[self::OPT_POLICY], $input, false, false, false, false);
+        } catch(PolicyException $exception) {
+
+            if($this->policyMissing($input)) {
+                return $pHandler->handle($pRequest);
+            }
+
+            return $this->responseFactory->createResponse(403, 'Unauthorized');
+        }
+
         // Add the result as an attribute
         if (!empty($this->options[self::OPT_ATTRIBUTE_RESULT])) {
             $pRequest = $pRequest->withAttribute($this->options[self::OPT_ATTRIBUTE_RESULT], $result);
@@ -124,6 +139,26 @@ class Authorization implements MiddlewareInterface
     }
 
     /**
+     * Handle a missing policy
+     */
+    private function policyMissing(array $pInput)
+    {
+        $this->log(LogLevel::WARNING, 'opa-authz: Policy not found', [$pInput, $this->options[self::OPT_POLICY]]);
+
+        // Is a handler available
+        if(!is_callable($this->options[self::OPT_POLICY_MISSING_CALLBACK])) {
+            throw new Exception('Policy not found');
+        }
+
+        // Did it fail?
+        if(call_user_func($this->options[self::OPT_POLICY_MISSING_CALLBACK], $pInput) === false) {
+            return false;
+        }
+
+        $this->log(LogLevel::WARNING, 'opa-authz: Policy auth override', [$pInput, $this->options[self::OPT_POLICY]]);
+        return true;
+    }
+    /**
      * Prepare the parameters to pass the policy
      */
     private function policyInputsPrepare(ServerRequestInterface $pRequest): array
@@ -131,7 +166,7 @@ class Authorization implements MiddlewareInterface
         $name = $this->options[self::OPT_ATTRIBUTE_INPUT];
         $attribute = $pRequest->getAttribute($name, $this->options[self::OPT_ATTRIBUTE_INPUT_DEFAULT]);
 
-        $input = [  'path'   => array_values(array_filter(explode('/', $pRequest->getUri()->getPath()))),
+        $input = [  'path'   => array_values(array_filter(explode('/', urldecode($pRequest->getUri()->getPath())))),
                     'method' => $pRequest->getMethod(),
                     'user' => $attribute['sub'] ?? '',
                     $name => $attribute
