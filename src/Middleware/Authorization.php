@@ -31,7 +31,6 @@ declare(strict_types=1);
 
 namespace Segrax\OpenPolicyAgent\Middleware;
 
-use Exception;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
@@ -43,6 +42,7 @@ use Psr\Log\LogLevel;
 use Segrax\OpenPolicyAgent\Client;
 use Segrax\OpenPolicyAgent\Exception\PolicyException;
 use Segrax\OpenPolicyAgent\Response;
+use Exception;
 
 /**
  * Class for providing an authorization layer to the middleware
@@ -57,6 +57,7 @@ class Authorization implements MiddlewareInterface
     public const OPT_ATTRIBUTE_INPUT         = 'attrInput';
     public const OPT_POLICY                  = 'policy';
     public const OPT_POLICY_ALLOW            = 'policy_allow';
+    public const OPT_INPUT_CALLBACK          = 'inputCallback';
     public const OPT_POLICY_MISSING_CALLBACK = 'policy_missing_callback';
 
     /**
@@ -83,8 +84,8 @@ class Authorization implements MiddlewareInterface
         self::OPT_ATTRIBUTE_INPUT_DEFAULT   => ['sub' => ''],
         self::OPT_POLICY                    => '',
         self::OPT_POLICY_ALLOW              => 'allow',
+        self::OPT_INPUT_CALLBACK            => null,
         self::OPT_POLICY_MISSING_CALLBACK   => null
-
     ];
 
     /**
@@ -104,7 +105,7 @@ class Authorization implements MiddlewareInterface
 
         $this->client = $pClient;
         $this->responseFactory = $pResponseFactory;
-        $this->options = array_replace_recursive($this->options, $pOptions);
+        $this->options = array_replace_recursive($this->options, $pOptions) ?? [];
     }
 
     /**
@@ -115,9 +116,8 @@ class Authorization implements MiddlewareInterface
         $input = $this->policyInputsPrepare($pRequest);
         try {
             $result = $this->client->policy($this->options[self::OPT_POLICY], $input, false, false, false, false);
-        } catch(PolicyException $exception) {
-
-            if($this->policyMissing($input)) {
+        } catch (PolicyException $exception) {
+            if ($this->policyMissing($input)) {
                 return $pHandler->handle($pRequest);
             }
 
@@ -146,12 +146,12 @@ class Authorization implements MiddlewareInterface
         $this->log(LogLevel::WARNING, 'opa-authz: Policy not found', [$pInput, $this->options[self::OPT_POLICY]]);
 
         // Is a handler available
-        if(!is_callable($this->options[self::OPT_POLICY_MISSING_CALLBACK])) {
+        if (!is_callable($this->options[self::OPT_POLICY_MISSING_CALLBACK])) {
             throw new Exception('Policy not found');
         }
 
         // Did it fail?
-        if(call_user_func($this->options[self::OPT_POLICY_MISSING_CALLBACK], $pInput) === false) {
+        if (call_user_func($this->options[self::OPT_POLICY_MISSING_CALLBACK], $pInput) === false) {
             return false;
         }
 
@@ -172,6 +172,9 @@ class Authorization implements MiddlewareInterface
                     $name => $attribute
                  ];
 
+        if (is_callable($this->options[self::OPT_INPUT_CALLBACK])) {
+            $input = array_merge(call_user_func($this->options[self::OPT_INPUT_CALLBACK]), $input);
+        }
         return $input;
     }
 

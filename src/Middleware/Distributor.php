@@ -53,6 +53,7 @@ class Distributor implements MiddlewareInterface
     public const OPT_AGENT_USER      = 'agentusername';
     public const OPT_TOKEN_KEY       = 'tokenfield';
     public const OPT_POLICY_PATH     = 'policypath';
+    public const OPT_BUNDLE_CALLBACK = 'bundlecallback';
 
     /**
      * @var ?LoggerInterface
@@ -76,7 +77,8 @@ class Distributor implements MiddlewareInterface
         self::OPT_ATTRIBUTE_TOKEN   => 'token',
         self::OPT_AGENT_USER        => 'opa',
         self::OPT_TOKEN_KEY         => 'sub',
-        self::OPT_POLICY_PATH       => ''
+        self::OPT_POLICY_PATH       => '',
+        self::OPT_BUNDLE_CALLBACK   => null
     ];
 
     /**
@@ -96,7 +98,7 @@ class Distributor implements MiddlewareInterface
         $this->logger = $pLogger;
         $this->responseFactory = $pResponseFactory;
         $this->streamFactory = $pStreamFactory;
-        $this->options = array_replace_recursive($this->options, $pOptions);
+        $this->options = array_replace_recursive($this->options, $pOptions) ?? [];
     }
 
     /**
@@ -136,6 +138,13 @@ class Distributor implements MiddlewareInterface
             $bundle = new PharData($filename);
             foreach ($this->getBundleFiles($this->options[self::OPT_POLICY_PATH]) as $file) {
                 $bundle->addFile($file[0], $file[1]);
+            }
+
+            if (is_callable($this->options[self::OPT_BUNDLE_CALLBACK])) {
+                $files = call_user_func($this->options[self::OPT_BUNDLE_CALLBACK]);
+                foreach ($files as $file => $content) {
+                    $bundle->addFromString($file, $content);
+                }
             }
 
             $bundle->compress(Phar::GZ);

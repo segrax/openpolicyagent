@@ -83,7 +83,7 @@ class Client
         }
 
         $this->logger = $pLogger;
-        $this->options = array_replace_recursive($this->options, $pOptions);
+        $this->options = array_replace_recursive($this->options, $pOptions) ?? [];
         // Append trailing / to agent url
         $this->options[self::OPT_AGENT_URL] = (rtrim($this->options[self::OPT_AGENT_URL], '/') . '/');
     }
