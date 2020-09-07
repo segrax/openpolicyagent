@@ -116,7 +116,7 @@ class Distributor implements MiddlewareInterface
 
         // If the subject is the OPA agent user, we provide the bundle
         if ($attribute['sub'] === $this->options[self::OPT_AGENT_USER]) {
-            $bundleFile = $this->getBundle();
+            $bundleFile = $this->getBundle($request);
             $stream = $this->streamFactory->createStreamFromFile($bundleFile, 'rb');
             $response = $this->responseFactory->createResponse(200)
                 ->withHeader('Content-Type', 'application/gzip')
@@ -131,7 +131,7 @@ class Distributor implements MiddlewareInterface
     /**
      * Collect up the contents of a bundle and gzip it
      */
-    private function getBundle(): string
+    private function getBundle(ServerRequestInterface $request): string
     {
         $filename = tempnam(sys_get_temp_dir(), 'bundle_') . '.tar';
         try {
@@ -142,7 +142,7 @@ class Distributor implements MiddlewareInterface
 
             // Callback and collect data to bundle
             if (is_callable($this->options[self::OPT_BUNDLE_CALLBACK])) {
-                $files = call_user_func($this->options[self::OPT_BUNDLE_CALLBACK]);
+                $files = call_user_func($this->options[self::OPT_BUNDLE_CALLBACK], $request);
                 foreach ($files as $file => $content) {
                     $bundle->addFromString($file, $content);
                 }

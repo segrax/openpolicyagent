@@ -77,11 +77,11 @@ class DistributorTest extends Base
     /**
      * Execute the Distributor middleware
      */
-    protected function executeMiddleware(string $pPath, array $pToken = []): ResponseInterface
+    protected function executeMiddleware(string $pPath, array $pToken = [], array $pOptions = []): ResponseInterface
     {
         $collection = new MiddlewareCollection([
             new Distributor(
-                [Distributor::OPT_POLICY_PATH => self::POLICY_PATH],
+                array_merge_recursive([Distributor::OPT_POLICY_PATH => self::POLICY_PATH], $pOptions),
                 new ResponseFactory(),
                 new StreamFactory()
             )
@@ -173,6 +173,18 @@ class DistributorTest extends Base
             new ResponseFactory(),
             new StreamFactory()
         );
+    }
+
+    public function testBundleCallback(): void
+    {
+        $called = false;
+        $response = $this->executeMiddleware('/opa/bundles/test', [], [Distributor::OPT_BUNDLE_CALLBACK => function($request) use(&$called) {
+            $called = true;
+            return ['test/data.json' => json_encode([])];
+        }]);
+
+        $this->assertEquals(true, $called);
+        $this->assertEquals(200, $response->getStatusCode());
     }
 
     /**

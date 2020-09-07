@@ -34,6 +34,7 @@ namespace Segrax\OpenPolicyAgent\Tests;
 use Closure;
 use InvalidArgumentException;
 use Equip\Dispatch\MiddlewareCollection;
+use Exception;
 use Psr\Http\Message\ResponseInterface;
 use Segrax\OpenPolicyAgent\Middleware\Authorization;
 use Slim\Psr7\Factory\ResponseFactory;
@@ -66,10 +67,13 @@ class AuthorizationTest extends Base
     /**
      * Execute the middleware
      */
-    protected function executeMiddleware(string $pName, string $pPath): ResponseInterface
+    protected function executeMiddleware(string $pName, string $pPath, array $pOptions = []): ResponseInterface
     {
+        if(!isset($pOptions[Authorization::OPT_POLICY]))
+            $pOptions[Authorization::OPT_POLICY] = $pName;
+
         $collection = new MiddlewareCollection([
-            new Authorization([Authorization::OPT_POLICY => $pName], $this->client, new ResponseFactory())
+            new Authorization($pOptions, $this->client, new ResponseFactory())
         ]);
         $request = (new ServerRequestFactory())->createFromGlobals();
         $request = $request->withUri($this->getUri($pPath));
@@ -106,4 +110,50 @@ class AuthorizationTest extends Base
         $this->expectException(InvalidArgumentException::class);
         new Authorization([Authorization::OPT_POLICY => ''], $this->client, new ResponseFactory());
     }
+
+    public function testPolicyMissing(): void
+    {
+        $this->expectException(Exception::class);
+        $this->executeMiddleware('unittest/apiss', '/asd');
+    }
+
+    /**
+     * Ensure the input callback works
+     */
+    public function testPolicyInputCallback(): void
+    {
+        $called = false;
+
+        $response = $this->executeMiddleware('unittest/api', '/asd', [Authorization::OPT_INPUT_CALLBACK =>
+            function($request) use(&$called) {
+                $called = true;
+                return ['somekey' => 'val'];
+            }]);
+
+        $this->assertEquals(true, $called);
+        $this->assertEquals(403, $response->getStatusCode());
+    }
+
+    /**
+     * Ensure policy missing callback works
+     */
+    public function testPolicyMissingWithCallbackFail(): void
+    {
+        $response = $this->executeMiddleware('unittest/apiss', '/asd', [Authorization::OPT_POLICY_MISSING_CALLBACK => function($pInputs) {
+            return false;
+        }]);
+        $this->assertEquals(403, $response->getStatusCode());
+    }
+
+    /**
+     * Ensure policy missing callback works
+     */
+    public function testPolicyMissingWithCallbackSuccess(): void
+    {
+        $response = $this->executeMiddleware('unittest/apiss', '/asd', [Authorization::OPT_POLICY_MISSING_CALLBACK => function($pInputs) {
+            return true;
+        }]);
+        $this->assertEquals(200, $response->getStatusCode());
+    }
+
 }

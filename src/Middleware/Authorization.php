@@ -173,7 +173,7 @@ class Authorization implements MiddlewareInterface
                  ];
 
         if (is_callable($this->options[self::OPT_INPUT_CALLBACK])) {
-            $input = array_merge_recursive(call_user_func($this->options[self::OPT_INPUT_CALLBACK]), $input);
+            $input = array_merge_recursive(call_user_func($this->options[self::OPT_INPUT_CALLBACK], $request), $input);
         }
         return $input;
     }
