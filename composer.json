@@ -43,7 +43,7 @@
     "require-dev": {
         "donatj/mock-webserver": "^2.1",
         "equip/dispatch": "^2.0",
-        "phpunit/phpunit": "^8.4",
+        "phpunit/phpunit": "9.1.*",
         "slim/psr7": "^0.6.0",
         "splitbrain/php-archive": "^1.1"
     },
