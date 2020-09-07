@@ -104,14 +104,14 @@ class Distributor implements MiddlewareInterface
     /**
      * Check if OPA is attemting to fetch its bundle, then pack and serve it.
      */
-    public function process(ServerRequestInterface $pRequest, RequestHandlerInterface $pHandler): ResponseInterface
+    public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-        $attribute = $pRequest->getAttribute($this->options[self::OPT_ATTRIBUTE_TOKEN]);
-        $path = $pRequest->getUri()->getPath();
+        $attribute = $request->getAttribute($this->options[self::OPT_ATTRIBUTE_TOKEN]);
+        $path = $request->getUri()->getPath();
         $pos = strpos($path, '/opa/bundles');
 
         if (is_null($attribute) || ($pos === false || $pos > 0)) {
-            return $pHandler->handle($pRequest);
+            return $handler->handle($request);
         }
 
         // If the subject is the OPA agent user, we provide the bundle
@@ -125,7 +125,7 @@ class Distributor implements MiddlewareInterface
             return $response;
         }
 
-        return $pHandler->handle($pRequest);
+        return $handler->handle($request);
     }
 
     /**
@@ -140,6 +140,7 @@ class Distributor implements MiddlewareInterface
                 $bundle->addFile($file[0], $file[1]);
             }
 
+            // Callback and collect data to bundle
             if (is_callable($this->options[self::OPT_BUNDLE_CALLBACK])) {
                 $files = call_user_func($this->options[self::OPT_BUNDLE_CALLBACK]);
                 foreach ($files as $file => $content) {

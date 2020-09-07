@@ -111,14 +111,14 @@ class Authorization implements MiddlewareInterface
     /**
      * Process server request
      */
-    public function process(ServerRequestInterface $pRequest, RequestHandlerInterface $pHandler): ResponseInterface
+    public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-        $input = $this->policyInputsPrepare($pRequest);
+        $input = $this->policyInputsPrepare($request);
         try {
             $result = $this->client->policy($this->options[self::OPT_POLICY], $input, false, false, false, false);
         } catch (PolicyException $exception) {
             if ($this->policyMissing($input)) {
-                return $pHandler->handle($pRequest);
+                return $handler->handle($request);
             }
 
             return $this->responseFactory->createResponse(403, 'Unauthorized');
@@ -126,12 +126,12 @@ class Authorization implements MiddlewareInterface
 
         // Add the result as an attribute
         if (!empty($this->options[self::OPT_ATTRIBUTE_RESULT])) {
-            $pRequest = $pRequest->withAttribute($this->options[self::OPT_ATTRIBUTE_RESULT], $result);
+            $request = $request->withAttribute($this->options[self::OPT_ATTRIBUTE_RESULT], $result);
         }
 
         $allowed = $result->getByName($this->options[self::OPT_POLICY_ALLOW]);
         if ($allowed === true) {
-            return $pHandler->handle($pRequest);
+            return $handler->handle($request);
         }
 
         $this->log(LogLevel::INFO, 'opa-authz: Unauthorized', [$input, $result]);
@@ -161,19 +161,19 @@ class Authorization implements MiddlewareInterface
     /**
      * Prepare the parameters to pass the policy
      */
-    private function policyInputsPrepare(ServerRequestInterface $pRequest): array
+    private function policyInputsPrepare(ServerRequestInterface $request): array
     {
         $name = $this->options[self::OPT_ATTRIBUTE_INPUT];
-        $attribute = $pRequest->getAttribute($name, $this->options[self::OPT_ATTRIBUTE_INPUT_DEFAULT]);
+        $attribute = $request->getAttribute($name, $this->options[self::OPT_ATTRIBUTE_INPUT_DEFAULT]);
 
-        $input = [  'path'   => array_values(array_filter(explode('/', urldecode($pRequest->getUri()->getPath())))),
-                    'method' => $pRequest->getMethod(),
+        $input = [  'path'   => array_values(array_filter(explode('/', urldecode($request->getUri()->getPath())))),
+                    'method' => $request->getMethod(),
                     'user' => $attribute['sub'] ?? '',
                     $name => $attribute
                  ];
 
         if (is_callable($this->options[self::OPT_INPUT_CALLBACK])) {
-            $input = array_merge(call_user_func($this->options[self::OPT_INPUT_CALLBACK]), $input);
+            $input = array_merge_recursive(call_user_func($this->options[self::OPT_INPUT_CALLBACK]), $input);
         }
         return $input;
     }
