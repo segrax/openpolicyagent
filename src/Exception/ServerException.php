@@ -68,12 +68,12 @@ class ServerException extends RuntimeException
     */
 
     /**
-     * @var array
+     * @var array<mixed>
      */
     private $response = [];
 
     /**
-     * @var array
+     * @var array<mixed>
      */
     private $errors = [];
 
@@ -89,7 +89,7 @@ class ServerException extends RuntimeException
      */
     public function __construct(string $pBody)
     {
-        $this->response = json_decode((string) $pBody, true);
+        $this->response = json_decode($pBody, true);
         if (empty($this->response[self::OPA_KEY_ERRORMSG]) || empty($this->response[self::OPA_KEY_ERRORCODE])) {
             throw new RuntimeException("ServerException occured, but data missing");
         }
@@ -112,7 +112,9 @@ class ServerException extends RuntimeException
     }
 
     /**
-     * Get the erorrs
+     * Get the errors
+     *
+     * @return array<mixed>
      */
     public function getErrors(): array
     {

@@ -58,23 +58,26 @@ class Client
     private $logger = null;
 
     /**
-     * @var array
+     * @var array<string, string>
      */
     private $httpHeadersJson = ['Content-Type' => 'application/json'];
 
     /**
-     * @var array
+     * @var array<string, string>
      */
     private $httpHeadersText = ['Content-Type' => 'text/plain'];
 
     /**
-     * @var array
+     * @var array<string, string>
      */
     private $options = [self::OPT_AGENT_URL  => '',
                         self::OPT_AUTH_TOKEN => ''];
 
     /**
      * Class Setup
+     *
+     * @param array<string, string> $pOptions
+     * @param LoggerInterface $pLogger
      */
     public function __construct(array $pOptions, LoggerInterface $pLogger = null)
     {
@@ -83,13 +86,15 @@ class Client
         }
 
         $this->logger = $pLogger;
-        $this->options = array_replace_recursive($this->options, $pOptions) ?? [];
+        $this->options = array_replace_recursive($this->options, $pOptions);
         // Append trailing / to agent url
         $this->options[self::OPT_AGENT_URL] = (rtrim($this->options[self::OPT_AGENT_URL], '/') . '/');
     }
 
     /**
      * Get the version information of the agent
+     *
+     * @return array<string>
      */
     public function getAgentVersion(): array
     {
@@ -100,6 +105,8 @@ class Client
 
     /**
      * Create or Update a document
+     *
+     * @return array<string>
      */
     public function dataUpdate(string $pDataName, string $pContent): array
     {
@@ -108,6 +115,8 @@ class Client
 
     /**
      * Create or Update a policy on the agent
+     *
+     * @return array<string>
      */
     public function policyUpdate(string $pPolicyName, string $pContent, bool $pMetrics): array
     {
@@ -117,6 +126,15 @@ class Client
 
     /**
      * Execute a policy
+     *
+     * @param string $pPolicyName
+     * @param array<string> $pInputData
+     * @param bool $pExplain
+     * @param bool $pMetrics
+     * @param bool $pInstrument
+     * @param bool $pProvenance
+     *
+     * @return OpaResponse
      */
     public function policy(
         string $pPolicyName,
@@ -132,6 +150,14 @@ class Client
 
     /**
      * Execute a query
+     *
+     * @param string $pQuery
+     * @param bool $pExplain
+     * @param bool $pMetrics
+     * @param bool $pInstrument
+     * @param bool $pProvenance
+     *
+     * @return OpaResponse
      */
     public function query(
         string $pQuery,
@@ -146,6 +172,11 @@ class Client
 
     /**
      * Execute a POST
+     *
+     * @param string $pUrl
+     * @param array<mixed> $pContent
+     *
+     * @return OpaResponse
      */
     private function executePost(string $pUrl, array $pContent = []): OpaResponse
     {
@@ -155,6 +186,12 @@ class Client
 
     /**
      * Execute a PUT
+     *
+     * @param string $pUrl
+     * @param bool $pJson
+     * @param string $pBody
+     *
+     * @return array<string>
      */
     private function executePut(string $pUrl, bool $pJson, string $pBody = ""): array
     {
@@ -170,6 +207,13 @@ class Client
 
     /**
      * Execute a request
+     *
+     * @param string $pMethod
+     * @param string $pUrl
+     * @param bool $pJson
+     * @param string $pBody
+     *
+     * @return ResponseInterface
      */
     private function execute(string $pMethod, string $pUrl, bool $pJson, string $pBody = ""): ResponseInterface
     {
@@ -184,12 +228,6 @@ class Client
         } catch (HttpClientException | HttpServerException $exception) {
             $this->log(LogLevel::ERROR, "opa-Client: Error", [$pUrl, $pBody]);
             $response = $exception->getResponse();
-            // Can this ever be null?
-            if (is_null($response)) {
-                // @codeCoverageIgnoreStart
-                throw $exception;
-                // @codeCoverageIgnoreEnd
-            }
             throw new ServerException($response->getBody()->__toString());
         } catch (HttpException $exception) {
             $this->log(LogLevel::ERROR, "opa-Client: Not Available", [$pUrl]);
@@ -201,6 +239,14 @@ class Client
 
     /**
      * Add parameters to the url
+     *
+     * @param string $pUrl
+     * @param bool $pExplain
+     * @param bool $pMetrics
+     * @param bool $pInstrument
+     * @param bool $pProvenance
+     *
+     * @return string
      */
     private function getUrlQuery(
         string $pUrl,
@@ -230,6 +276,8 @@ class Client
 
     /**
      * Get the url to the agent and API version
+     *
+     * @return string
      */
     private function getBaseUrl(): string
     {
@@ -262,6 +310,10 @@ class Client
 
     /**
      * Log if available
+     *
+     * @param string $pLevel
+     * @param string $pMessage
+     * @param array<mixed> $pContext
      */
     private function log(string $pLevel, string $pMessage, array $pContext = []): void
     {

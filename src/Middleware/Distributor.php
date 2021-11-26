@@ -71,7 +71,7 @@ class Distributor implements MiddlewareInterface
     private $streamFactory;
 
     /**
-     * @var array
+     * @var array<string, mixed>
      */
     private $options = [
         self::OPT_ATTRIBUTE_TOKEN   => 'token',
@@ -83,6 +83,8 @@ class Distributor implements MiddlewareInterface
 
     /**
      * Class Setup
+     *
+     * @param array<mixed> $pOptions
      */
     public function __construct(
         array $pOptions,
@@ -98,7 +100,7 @@ class Distributor implements MiddlewareInterface
         $this->logger = $pLogger;
         $this->responseFactory = $pResponseFactory;
         $this->streamFactory = $pStreamFactory;
-        $this->options = array_replace_recursive($this->options, $pOptions) ?? [];
+        $this->options = array_replace_recursive($this->options, $pOptions);
     }
 
     /**
@@ -159,6 +161,8 @@ class Distributor implements MiddlewareInterface
 
     /**
      * Find all files to put in the bundle
+     *
+     * @return array<mixed>
      */
     private function getBundleFiles(string $pPath): array
     {
@@ -184,6 +188,8 @@ class Distributor implements MiddlewareInterface
 
     /**
      * Log if available
+     *
+     * @param array<mixed> $pContext
      */
     private function log(string $pLevel, string $pMessage, array $pContext = []): void
     {

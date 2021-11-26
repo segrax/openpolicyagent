@@ -46,22 +46,22 @@ class Response
     private const OPA_RESULT_ARRAY = 'result';
 
     /**
-     * @var array
+     * @var array<mixed>
      */
     private $result = [];
 
     /**
-     * @var array
+     * @var array<mixed>
      */
     private $metrics = [];
 
     /**
-     * @var array
+     * @var array<mixed>
      */
     private $explain = [];
 
     /**
-     * @var array
+     * @var array<mixed>
      */
     private $version = [];
 
@@ -99,6 +99,8 @@ class Response
 
     /**
      * Get all results
+     *
+     * @return array<mixed>
      */
     public function getResults(): array
     {
@@ -115,6 +117,8 @@ class Response
 
     /**
      * Ge the explaination
+     *
+     * @return array<mixed>
      */
     public function getExplain(): array
     {
@@ -123,6 +127,8 @@ class Response
 
     /**
      * Get the metrics
+     *
+     * @return array<mixed>
      */
     public function getMetrics(): array
     {
@@ -131,6 +137,8 @@ class Response
 
     /**
      * Get the version
+     *
+     * @return array<mixed>
      */
     public function getVersion(): array
     {

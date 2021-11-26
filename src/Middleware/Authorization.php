@@ -76,7 +76,7 @@ class Authorization implements MiddlewareInterface
     private $responseFactory;
 
     /**
-     * @var array
+     * @var array<string, mixed>
      */
     private $options = [
         self::OPT_ATTRIBUTE_RESULT          => 'openpolicyagent',
@@ -90,6 +90,11 @@ class Authorization implements MiddlewareInterface
 
     /**
      * Class Setup
+     *
+     * @param array<mixed,string> $pOptions
+     * @param Client $pClient
+     * @param ResponseFactoryInterface $pResponseFactory
+     * @param LoggerInterface $pLogger
      */
     public function __construct(
         array $pOptions,
@@ -105,11 +110,16 @@ class Authorization implements MiddlewareInterface
 
         $this->client = $pClient;
         $this->responseFactory = $pResponseFactory;
-        $this->options = array_replace_recursive($this->options, $pOptions) ?? [];
+        $this->options = array_replace_recursive($this->options, $pOptions);
     }
 
     /**
      * Process server request
+     *
+     * @param ServerRequestInterface $request
+     * @param RequestHandlerInterface $handler
+     *
+     * @return ResponseInterface
      */
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
@@ -140,8 +150,10 @@ class Authorization implements MiddlewareInterface
 
     /**
      * Handle a missing policy
+     *
+     * @param array<mixed> $pInput
      */
-    private function policyMissing(array $pInput)
+    private function policyMissing(array $pInput): bool
     {
         $this->log(LogLevel::WARNING, 'opa-authz: Policy not found', [$pInput, $this->options[self::OPT_POLICY]]);
 
@@ -158,8 +170,11 @@ class Authorization implements MiddlewareInterface
         $this->log(LogLevel::WARNING, 'opa-authz: Policy auth override', [$pInput, $this->options[self::OPT_POLICY]]);
         return true;
     }
+
     /**
      * Prepare the parameters to pass the policy
+     *
+     * @return array<mixed>
      */
     private function policyInputsPrepare(ServerRequestInterface $request): array
     {
@@ -180,6 +195,8 @@ class Authorization implements MiddlewareInterface
 
     /**
      * Log if available
+     *
+     * @param array<mixed> $pContext
      */
     private function log(string $pLevel, string $pMessage, array $pContext = []): void
     {

@@ -52,4 +52,12 @@ class PolicyException extends RuntimeException
         $this->response = $pResponse;
         parent::__construct($pMessage);
     }
+
+    /**
+     * Get the response
+     */
+    public function getResponse(): OpaResponse
+    {
+        return $this->response;
+    }
 }
