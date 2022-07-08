@@ -5,6 +5,7 @@
         "middleware",
         "psr-7",
         "psr-15",
+        "psr-18",
         "opa",
         "authz"
     ],
@@ -33,22 +34,23 @@
     "require": {
         "php": ">=8.0",
         "psr/log": "^1.0|^2.0|^3.0",
+        "psr/http-client": "^1.0",
         "psr/http-factory": "^1.0",
         "psr/http-message": "^1.0",
         "psr/http-server-handler": "^1.0",
-        "psr/http-server-middleware": "^1.0",
-		"guzzlehttp/guzzle": "^7.4"
+        "psr/http-server-middleware": "^1.0"
     },
 
     "require-dev": {
-        "donatj/mock-webserver": "^2.4",
         "equip/dispatch": "^2.0",
-        "phpunit/phpunit": "^9.5.10",
+        "phpunit/phpunit": "^9.5",
         "slim/psr7": "^1.5",
-        "splitbrain/php-archive": "^1.2"
+        "splitbrain/php-archive": "^1.2",
+        "guzzlehttp/guzzle": "^7.4"
     },
 
     "suggest": {
+        "guzzlehttp/guzzle": "Can be used as the HTTP Client",
         "tuupola/slim-jwt-auth": "Can be used to validate JWTs and insert them into the request",
         "monolog/monolog": "Can be used to support logging"
     }

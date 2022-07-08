@@ -90,10 +90,10 @@ class Distributor implements MiddlewareInterface
         array $pOptions,
         ResponseFactoryInterface $pResponseFactory,
         StreamFactoryInterface $pStreamFactory,
-        LoggerInterface $pLogger = null
+        ?LoggerInterface $pLogger = null
     ) {
         if (empty($pOptions[self::OPT_POLICY_PATH])) {
-            $this->log(LogLevel::EMERGENCY, 'opa-distributor has no policies');
+            $this->logger?->emergency('opa-distributor has no policies');
             throw new Exception('opa-distributor has no policies');
         }
 
@@ -152,7 +152,7 @@ class Distributor implements MiddlewareInterface
 
             $bundle->compress(Phar::GZ);
         } catch (Exception $e) {
-            $this->log(LogLevel::EMERGENCY, 'opa-distributor: Failed to build OPA bundle', [$e]);
+            $this->logger?->emergency('opa-distributor: Failed to build OPA bundle', [$e]);
             throw new Exception('opa-distributor: Failed to build OPA bundle');
         }
 
@@ -184,19 +184,5 @@ class Distributor implements MiddlewareInterface
         }
 
         return $results;
-    }
-
-    /**
-     * Log if available
-     *
-     * @param array<mixed> $pContext
-     */
-    private function log(string $pLevel, string $pMessage, array $pContext = []): void
-    {
-        if (!is_null($this->logger)) {
-            // @codeCoverageIgnoreStart
-            $this->logger->log($pLevel, $pMessage, $pContext);
-            // @codeCoverageIgnoreEnd
-        }
     }
 }

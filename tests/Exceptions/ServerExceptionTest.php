@@ -29,32 +29,44 @@ SOFTWARE.
 
 declare(strict_types=1);
 
-namespace Segrax\OpenPolicyAgent\Exception;
+namespace Segrax\OpenPolicyAgent\Tests;
 
+use PHPUnit\Framework\TestCase;
 use RuntimeException;
-use Segrax\OpenPolicyAgent\Response as OpaResponse;
+use Segrax\OpenPolicyAgent\Exception\ServerException;
 
-/**
- * Exception thrown when a policy fails to return a result
- */
-class PolicyException extends RuntimeException
+class ServerExceptionTest extends TestCase
 {
-    private OpaResponse $response;
 
-    /**
-     * Class Setup
-     */
-    public function __construct(OpaResponse $pResponse, string $pMessage)
+    public function setUp(): void
     {
-        $this->response = $pResponse;
-        parent::__construct($pMessage);
     }
 
-    /**
-     * Get the response
-     */
-    public function getResponse(): OpaResponse
+    public function testErrorResponse()
     {
-        return $this->response;
+        $exception =  new ServerException('        {
+            "code": "invalid_parameter",
+            "message": "error(s) occurred while compiling module(s)",
+            "errors": [
+                {
+                "code": "rego_type_error",
+                "message": "multiple default rules named allow found",
+                "location": {
+                    "file": "authz.rego",
+                    "row": 3,
+                    "col": 1
+                }
+                }
+            ]}');
+
+        $this->assertSame('invalid_parameter', $exception->getOpaCode());
+        $this->assertNotEmpty($exception->getErrors());
+        $this->assertArrayHasKey('code', $exception->getErrors()[0]);
+    }
+
+    public function testInvalidErrorResponseThrows()
+    {
+        $this->expectException(RuntimeException::class);
+        $exception =  new ServerException('{}');
     }
 }

@@ -45,37 +45,19 @@ class Response
     private const OPA_PROVENANCE_ARRAY = 'provenance';
     private const OPA_RESULT_ARRAY = 'result';
 
-    /**
-     * @var array<mixed>
-     */
-    private $result = [];
-
-    /**
-     * @var array<mixed>
-     */
-    private $metrics = [];
-
-    /**
-     * @var array<mixed>
-     */
-    private $explain = [];
-
-    /**
-     * @var array<mixed>
-     */
-    private $version = [];
-
-    /**
-     * @var string
-     */
-    private $decisionid = '';
+    private array $result = [];
+    private array $metrics = [];
+    private array $explain = [];
+    private array  $version = [];
+    private string $decisionid = '';
 
     /**
      * Create from a HTTP response
      */
     public function __construct(ResponseInterface $pResponse)
     {
-        $data = json_decode($pResponse->getBody()->__toString(), true);
+        $data = json_decode($pResponse->getBody()->__toString(), true, 512, JSON_THROW_ON_ERROR);
+
         $this->decisionid = $data[self::OPA_DECISIONID_ARRAY] ?? '';
         $this->explain = $data[self::OPA_EXPLAIN_ARRAY] ?? [];
         $this->result = $data[self::OPA_RESULT_ARRAY] ?? [];

@@ -31,222 +31,451 @@ declare(strict_types=1);
 
 namespace Segrax\OpenPolicyAgent\Tests;
 
-use donatj\MockWebServer\Response;
+use GuzzleHttp\Exception\ConnectException;
+use PHPUnit\Framework\TestCase;
+use Psr\Http\Client\ClientInterface;
+use Psr\Http\Message\RequestInterface;
 use RuntimeException;
 use Segrax\OpenPolicyAgent\Client;
 use Segrax\OpenPolicyAgent\Exception\PolicyException;
 use Segrax\OpenPolicyAgent\Exception\ServerException;
-use Segrax\OpenPolicyAgent\Response as OpaResponse;
-use UnexpectedValueException;
+use Slim\Psr7\Factory\RequestFactory;
+use Slim\Psr7\Factory\StreamFactory;
+use Slim\Psr7\Response;
 
 /**
  * Set of tests of the OPA Client class
  */
-class ClientTest extends Base
+class ClientTest extends TestCase
 {
-    /**
-     * @var array Version information
-     */
-    private $resultVersion = [
-        'provenance' => [
-            'version' => '0.15.1',
-            'build_commit' => '62bb63d',
-            'build_timestamp' => '2019-11-18T15:22:47Z',
-            'build_hostname' => '1173a3a0b052'
-        ]
-    ];
+    private ClientInterface $httpclient;
+    private Client $client;
 
     /**
-     * @var string Stored as JSON due to size
+     * Setup the Client for each test
      */
-    //@codingStandardsIgnoreLine
-    private $resultQueryJson = '{"explanation":[{"op":"enter","query_id":0,"parent_id":0,"type":"body","node":[{"index":0,"terms":[{"type":"ref","value":[{"type":"var","value":"eq"}]},{"type":"object","value":[[{"type":"string","value":"user"},{"type":"array","value":[{"type":"string","value":"alice"}]}]]},{"type":"var","value":"$term1"}]}],"locals":[]},{"op":"eval","query_id":0,"parent_id":0,"type":"expr","node":{"index":0,"terms":[{"type":"ref","value":[{"type":"var","value":"eq"}]},{"type":"object","value":[[{"type":"string","value":"user"},{"type":"array","value":[{"type":"string","value":"alice"}]}]]},{"type":"var","value":"$term1"}]},"locals":[]},{"op":"exit","query_id":0,"parent_id":0,"type":"body","node":[{"index":0,"terms":[{"type":"ref","value":[{"type":"var","value":"eq"}]},{"type":"object","value":[[{"type":"string","value":"user"},{"type":"array","value":[{"type":"string","value":"alice"}]}]]},{"type":"var","value":"$term1"}]}],"locals":[{"key":{"type":"var","value":"$term1"},"value":{"type":"object","value":[[{"type":"string","value":"user"},{"type":"array","value":[{"type":"string","value":"alice"}]}]]}}]},{"op":"redo","query_id":0,"parent_id":0,"type":"body","node":[{"index":0,"terms":[{"type":"ref","value":[{"type":"var","value":"eq"}]},{"type":"object","value":[[{"type":"string","value":"user"},{"type":"array","value":[{"type":"string","value":"alice"}]}]]},{"type":"var","value":"$term1"}]}],"locals":[{"key":{"type":"var","value":"$term1"},"value":{"type":"object","value":[[{"type":"string","value":"user"},{"type":"array","value":[{"type":"string","value":"alice"}]}]]}}]},{"op":"redo","query_id":0,"parent_id":0,"type":"expr","node":{"index":0,"terms":[{"type":"ref","value":[{"type":"var","value":"eq"}]},{"type":"object","value":[[{"type":"string","value":"user"},{"type":"array","value":[{"type":"string","value":"alice"}]}]]},{"type":"var","value":"$term1"}]},"locals":[{"key":{"type":"var","value":"$term1"},"value":{"type":"object","value":[[{"type":"string","value":"user"},{"type":"array","value":[{"type":"string","value":"alice"}]}]]}}]}],"metrics":{"histogram_eval_op_plug":{"75%":975,"90%":1000,"95%":1000,"99%":1000,"99.9%":1000,"99.99%":1000,"count":4,"max":1000,"mean":900,"median":900,"min":800,"stddev":70.71067811865476},"timer_eval_op_plug_ns":3600,"timer_query_compile_stage_check_safety_ns":14300,"timer_query_compile_stage_check_types_ns":9300,"timer_query_compile_stage_check_undefined_funcs_ns":2600,"timer_query_compile_stage_check_unsafe_builtins_ns":2400,"timer_query_compile_stage_resolve_refs_ns":3600,"timer_query_compile_stage_rewrite_comprehension_terms_ns":3800,"timer_query_compile_stage_rewrite_dynamic_terms_ns":3100,"timer_query_compile_stage_rewrite_expr_terms_ns":3700,"timer_query_compile_stage_rewrite_local_vars_ns":10600,"timer_query_compile_stage_rewrite_to_capture_value_ns":3500,"timer_query_compile_stage_rewrite_with_values_ns":2200,"timer_rego_input_parse_ns":1800,"timer_rego_load_bundles_ns":900,"timer_rego_load_files_ns":1200,"timer_rego_module_parse_ns":900,"timer_rego_query_compile_ns":77300,"timer_rego_query_eval_ns":26700,"timer_rego_query_parse_ns":900},"result":[{}]}';
-
-    /**
-     * @var array Error response
-     */
-    private $resultError = [
-        'code' => 'invalid_parameter',
-        'message' => 'error(s) occurred while compiling module(s)',
-        'errors' => [
-            [
-                'code' => 'rego_unsafe_var_error',
-                'message' => 'var x is unsafe',
-                'location' => [
-                    'file' => 'example',
-                    'row' => 3,
-                    'col' => 1
-                ]
-            ]
-        ]
-    ];
-
-    /**
-     * Test no URL provided to Client
-     */
-    public function testNoURLException(): void
+    public function setUp(): void
     {
-        $this->expectException(UnexpectedValueException::class);
-        new Client([Client::OPT_AGENT_URL => '']);
+        $this->httpclient = $this->createMock(ClientInterface::class);
+        $this->client = new Client(null, $this->httpclient, new RequestFactory(), 'http', 'fake-token');
     }
 
     /**
-     * Test the Response on a policy allow
+     * @dataProvider agentResponseProvider
      */
-    public function testPolicyResponse(): void
+    public function testAgentVersion(Response $pAgentResponse): void
     {
-        $this->setPolicyAllow('auth/api');
-        $response = $this->client->policy('auth/api', [], false, false, false, false);
-        $this->assertArrayHasKey('allow', $response->getResults());
-        $this->assertTrue($response->has('allow'));
-        $this->assertTrue($response->getByName('allow'));
+        $this->httpclient->method('sendRequest')->willReturn($pAgentResponse);
+
+        $response = $this->client->getAgentVersion();
+        $this->assertArrayHasKey('version', $response);
+        $this->assertArrayHasKey('build_commit', $response);
+        $this->assertArrayHasKey('build_timestamp', $response);
+        $this->assertArrayHasKey('build_hostname', $response);
     }
 
-    /**
-     * Check the agent version response
-     */
-    public function testGetAgentVersion(): void
-    {
-        self::$server->setResponseOfPath(
-            $this->getBaseURL() . '/data/',
-            new Response(json_encode($this->resultAllowTrue + $this->resultVersion))
-        );
-        $version = $this->client->getAgentVersion();
-        $this->assertCount(4, $version);
-        $this->assertEquals($this->resultVersion['provenance'], $version);
-    }
-
-    /**
-     * Test the Response for all fields
-     */
-    public function testQueryResponse(): void
-    {
-        self::$server->setResponseOfPath(
-            $this->getBaseURL() . '/query',
-            new Response($this->resultQueryJson)
-        );
-        $response = $this->client->query('{"user": ["alice"]}', true, true, true, false);
-        $expected = json_decode($this->resultQueryJson, true);
-        $this->assertEquals($expected['explanation'], $response->getExplain());
-        $this->assertEquals($expected['metrics'], $response->getMetrics());
-        $this->assertEquals($expected['result'], $response->getResults());
-        $this->assertEquals('', $response->getDecisionID());
-    }
-
-    /**
-     * Test the Response in a policy fail
-     */
-    public function testPolicyFail(): void
-    {
-        self::$server->setResponseOfPath(
-            $this->getBaseURL() . '/data/fail/asd',
-            new Response(json_encode($this->resultError), [], 500)
-        );
-        $this->expectException(ServerException::class);
-        $this->client->policy('fail/asd', [], false, false, false, false);
-    }
-
-    /**
-     * Ensure a RuntimeException occurs with an invalid URL
-     */
-    public function testAgentFail(): void
-    {
-        $this->client = new Client([Client::OPT_AGENT_URL => 'http://inval']);
-        $this->expectException(RuntimeException::class);
-        $this->client->policy('failed', [], false, false, false, false);
-    }
-
-    /**
-     * Ensure RuntimeException occurs on a 404 response
-     */
-    public function testFail(): void
-    {
-        self::$server->setResponseOfPath(
-            $this->getBaseURL() . '/data/failed',
-            new Response("", [], 404)
-        );
-        $this->expectException(RuntimeException::class);
-        $this->client->policy('failed', [], false, false, false, false);
-    }
-
-    /**
-     * Ensure a PolicyException occurs when there is no result set
-     */
-    public function testInvalidPolicy(): void
-    {
-        self::$server->setResponseOfPath(
-            $this->getBaseURL() . '/data/failed',
-            new Response("", [], 200)
-        );
-        $this->expectException(PolicyException::class);
-        $this->client->policy('failed', [], false, false, false, false);
-    }
-
-    /**
-     * Ensure a successful policy update returns an empty response
-     */
-    public function testPolicyUpdate(): void
-    {
-        self::$server->setResponseOfPath(
-            $this->getBaseURL() . '/policies/some/policy',
-            new Response(json_encode([]), [], 200)
-        );
-        $result = $this->client->policyUpdate('some/policy', 'some content', false);
-        $this->assertEmpty($result);
-    }
-
-    /**
-     * Ensure a bad policy update throws a RuntimeException
-     */
-    public function testPolicyUpdateFail(): void
-    {
-        self::$server->setResponseOfPath(
-            $this->getBaseURL() . '/policies/some/policy',
-            new Response(json_encode([$this->resultError]), [], 400)
-        );
-        $this->expectException(RuntimeException::class);
-        $this->client->policyUpdate('some/policy', 'some content', false);
-    }
-
-    /**
-     * Ensure a ServerException populates its members correctly
-     */
-    public function testServerException(): void
-    {
-        $exception = new ServerException(json_encode($this->resultError));
-        $this->assertEquals($this->resultError['code'], $exception->getOpaCode());
-        $this->assertEquals($this->resultError['message'], $exception->getMessage());
-        $this->assertEquals($this->resultError['errors'], $exception->getErrors());
-    }
-
-    /**
-     * Ensure a bearer token setup works
-     *
-     * Unfortunately the MockWebServer cant be setup to check for tokens yet
-     */
-    public function testToken(): void
-    {
-        self::$server->setResponseOfPath(
-            $this->getBaseURL() . '/data/auth/apia',
-            new Response(json_encode($this->resultAllowTrue), [], 200)
-        );
-        $Client = new Client([  Client::OPT_AGENT_URL => self::$server->getServerRoot(),
-                                Client::OPT_AUTH_TOKEN => 'TOKEN']);
-        $response = $Client->policy('auth/apia', [], false, false, false, false);
-        $this->assertArrayHasKey('allow', $response->getResults());
-        $this->assertTrue($response->getByName('allow'));
-    }
-
-    /**
-     * Ensure a sucessful data update returns an empty array
-     */
     public function testDataUpdate(): void
     {
-        self::$server->setResponseOfPath(
-            $this->getBaseURL() . '/data/mine',
-            new Response(json_encode($this->resultAllowTrue), [], 204)
+        $this->httpclient->method('sendRequest')->willReturn(
+            new Response(204, null, (new StreamFactory)->createStream(json_encode("data")))
         );
-        $result = $this->client->dataUpdate('mine', json_encode(['this'=>'value']));
-        $this->assertCount(0, $result);
+
+        $this->assertSame(true, $this->client->dataUpdate('random', 'no content'));
+    }
+
+    public function testDataUpdateServerError(): void
+    {
+        $this->httpclient->method('sendRequest')->willReturn(
+            new Response(500, null, (new StreamFactory)->createStream(json_encode("data")))
+        );
+
+        $this->assertSame(false, $this->client->dataUpdate('random', 'no content'));
+    }
+
+    /**
+     * @dataProvider dataUpdateFailProvider
+     */
+    public function testDataUpdateFailThrows(Response $pDataResponse): void
+    {
+        $this->httpclient->method('sendRequest')->willReturn(
+            $pDataResponse
+        );
+
+        $this->expectException(ServerException::class);
+        $this->client->dataUpdate('random', 'no content');
+    }
+
+    public function testNetworkErrorThrows(): void
+    {
+        $this->httpclient->method('sendRequest')->will($this->throwException(
+            new ConnectException("Connect Fail", $this->createMock(RequestInterface::class))
+        ));
+
+        $this->expectException(RuntimeException::class);
+        $this->client->dataUpdate('random', 'no content');
+    }
+
+    public function testPolicyUpdate(): void
+    {
+        $this->httpclient->method('sendRequest')->willReturn(
+            new Response(204, null, (new StreamFactory)->createStream(json_encode("data")))
+        );
+
+        $this->assertSame(true, $this->client->policyUpdate('random', 'package random.api', false));
+    }
+
+    /**
+     * @dataProvider policyUpdateFailProvider
+     */
+    public function testPolicyUpdateFail(Response $pDataResponse): void
+    {
+        $this->httpclient->method('sendRequest')->willReturn(
+            $pDataResponse
+        );
+
+        $this->expectException(ServerException::class);
+        $this->client->dataUpdate('random', 'no content');
+    }
+
+    /**
+     * @dataProvider policyUpdateFailProvider
+     */
+    public function testPolicyUpdateFailCatch(Response $pDataResponse): void
+    {
+        $this->httpclient->method('sendRequest')->willReturn(
+            $pDataResponse
+        );
+
+        try {
+            $this->client->dataUpdate('random', 'no content');
+        } catch (ServerException $e) {
+            $this->assertSame('invalid_parameter', $e->getOpaCode());
+            $this->assertNotEmpty($e->getErrors());
+        }
+    }
+
+    /**
+     * @dataProvider policyResultAllowProvider
+     */
+    public function testPolicyAllow(Response $pResponse): void
+    {
+        $this->httpclient->method('sendRequest')->willReturn(
+            $pResponse
+        );
+
+        $response = $this->client->policy('test/api', ['path' => ['v1', 'status']], false, false, false, false);
+        $results = $response->getResults();
+        $this->assertSame(true, $results['allow']);
+    }
+
+    /**
+     * @dataProvider policyResultDeniedProvider
+     */
+    public function testPolicyDeny(Response $pResponse): void
+    {
+        $this->httpclient->method('sendRequest')->willReturn(
+            $pResponse
+        );
+
+        $response = $this->client->policy('test/api', ['path' => ['v1', 'status']], false, false, false, false);
+        $results = $response->getResults();
+        $this->assertSame(false, $results['allow']);
+    }
+
+    public function testPolicyMissing(): void
+    {
+        $this->httpclient->method('sendRequest')->willReturn(
+            new Response(200, null, (new StreamFactory)->createStream(json_encode([])))
+        );
+
+        $this->expectException(PolicyException::class);
+        $this->client->policy('missing/api', ['path' => ['v1', 'status']], false, false, false, false);
+    }
+
+    public function testPolicyMissingCatch(): void
+    {
+        $this->httpclient->method('sendRequest')->willReturn(
+            new Response(200, null, (new StreamFactory)->createStream(json_encode([])))
+        );
+
+        try {
+            $this->client->policy('missing/api', ['path' => ['v1', 'status']], false, false, false, false);
+        } catch (PolicyException $e) {
+            $this->assertEmpty($e->getResponse()->getResults());
+        }
+    }
+
+    /**
+     * @dataProvider fullResultProvider
+     */
+    public function testFullResponse(Response $pFullResponse): void
+    {
+        $this->httpclient->method('sendRequest')->willReturn(
+            $pFullResponse
+        );
+
+        $response = $this->client->policy('test/api', ['path' => ['v1', 'status']], false, false, false, false);
+
+        $this->assertSame(false, $response->getByName('allow'));
+        $this->assertSame('', $response->getDecisionID());
+        $this->assertNotEmpty($response->getMetrics());
+        $this->assertEmpty($response->getExplain());
+
+        $this->assertSame(false, $response->has('doesntexist'));
+    }
+    /**
+     * @dataProvider queryResultProvider
+     */
+    public function testQuery(Response $pResponse): void
+    {
+        $this->httpclient->method('sendRequest')->willReturn(
+            $pResponse
+        );
+        $response = $this->client->query(
+            'input.servers[i].ports[_] = "p2"; input.servers[i].name = name',
+            ['servers' => [
+                [
+                    'ports' => ['p2'],
+                    'name' => 'test'
+                ]
+            ]],
+            false,
+            false,
+            false,
+            false
+        );
+        $results = $response->getResults();
+        $this->assertSame(0, $results['i']);
+        $this->assertSame('test', $results['name']);
+    }
+    /**
+     * @dataProvider queryResultFailProvider
+     */
+    public function testQueryFails(Response $pResponse): void
+    {
+        $this->httpclient->method('sendRequest')->willReturn(
+            $pResponse
+        );
+
+        $this->expectException(ServerException::class);
+        $this->client->query(
+            'input.servers[i]].ports[_] = "p2"; input.servers[i].name = name',
+            ['servers' => [
+                [
+                    'ports' => ['p2'],
+                    'name' => 'test'
+                ]
+            ]],
+            false,
+            false,
+            false,
+            false
+        );
+    }
+
+    public function agentResponseProvider(): array
+    {
+        return [
+            [
+                new Response(200, null, (new StreamFactory)->createStream(json_encode(
+                    [
+                        'provenance' => [
+                            'version' => '0.42.0',
+                            'build_commit' => '9b5fb9b',
+                            'build_timestamp' => '2022-07-04T12:23:16Z',
+                            'build_hostname' => 'd3afd1ae56c8'
+                        ],
+                        'result' => []
+                    ]
+                )))
+            ]
+        ];
+    }
+
+    public function dataUpdateFailProvider(): array
+    {
+        return [
+            [
+                new Response(400, null, (new StreamFactory)->createStream(json_encode(
+                    [
+                        'code' => 'invalid_parameter',
+                        'message' => 'path test/api is owned by bundle "response.tar.gz"'
+                    ]
+                )))
+            ]
+        ];
+    }
+
+    public function policyUpdateFailProvider(): array
+    {
+        return [
+            [
+                new Response(400, null, (new StreamFactory)->createStream(json_encode(
+                    [
+                        'code' => 'invalid_parameter',
+                        'message' => 'error(s) occurred while compiling module(s)',
+                        'errors' => [
+                            [
+                                "code" => "rego_parse_error",
+                                "message" => "package expected",
+                                "location" => [
+                                    "file" => "test/api",
+                                    "row" => 1,
+                                    "col" => 1
+                                ]
+                            ]
+                        ]
+                    ]
+                )))
+            ]
+        ];
+    }
+
+    public function policyResultAllowProvider(): array
+    {
+        return [
+            [
+                new Response(200, null, (new StreamFactory)->createStream(json_encode(
+                    [
+                        'result' => ['allow' => true]
+                    ]
+                )))
+            ]
+        ];
+    }
+
+    public function policyResultDeniedProvider(): array
+    {
+        return [
+            [
+                new Response(200, null, (new StreamFactory)->createStream(json_encode(
+                    [
+                        'result' => ['allow' => false]
+                    ]
+                )))
+            ]
+        ];
+    }
+
+    public function queryResultProvider(): array
+    {
+        return [
+            [
+                new Response(200, null, (new StreamFactory)->createStream(json_encode(
+                    [
+                        'result' => ['i' => 0, 'name' => 'test']
+                    ]
+                )))
+            ]
+        ];
+    }
+
+    public function queryResultFailProvider(): array
+    {
+        return [
+            [
+                new Response(400, null, (new StreamFactory)->createStream(json_encode(
+                    [
+                        'code' => 'invalid_parameter',
+                        'message' => 'error(s) occurred while parsing query',
+                        'errors' => [
+                            0 => [
+                                'code' => 'rego_parse_error',
+                                'message' => 'unexpected ] token',
+                                'location' => [
+                                    'file' => '',
+                                    'row' => 1,
+                                    'col' => 17,
+                                ],
+                                'details' => [
+                                    'line' => 'input.servers[i]].ports[_] = "p2"; input.servers[i].name = name',
+                                    'idx' => 16,
+                                ],
+                            ],
+                        ],
+                    ]
+                )))
+            ]
+        ];
+    }
+
+    public function fullResultProvider(): array
+    {
+        return [
+            [
+                new Response(200, null, (new StreamFactory)->createStream(json_encode(
+                    [
+                        'provenance' => [
+                            'version' => '0.42.0',
+                            'build_commit' => '9b5fb9b',
+                            'build_timestamp' => '2022-07-04T12:23:16Z',
+                            'build_hostname' => 'd3afd1ae56c8',
+                            'bundles' => [
+                                'response.tar.gz' => [
+                                    'revision' => '5a639d8d6ac83c51aad5e33dace09cfcb053b5830048e3a1e374d5e1a727d9f1',
+                                ],
+                            ],
+                        ],
+                        'metrics' => [
+                            'counter_eval_op_base_cache_miss' => 1,
+                            'counter_eval_op_virtual_cache_miss' => 1,
+                            'counter_server_query_cache_hit' => 1,
+                            'histogram_eval_op_plug' => [
+                                '75%' => 0,
+                                '90%' => 0,
+                                '95%' => 0,
+                                '99%' => 0,
+                                '99.9%' => 0,
+                                '99.99%' => 0,
+                                'count' => 9,
+                                'max' => 0,
+                                'mean' => 0,
+                                'median' => 0,
+                                'min' => 0,
+                                'stddev' => 0,
+                            ],
+                            'histogram_eval_op_resolve' => [
+                                '75%' => 0,
+                                '90%' => 0,
+                                '95%' => 0,
+                                '99%' => 0,
+                                '99.9%' => 0,
+                                '99.99%' => 0,
+                                'count' => 2,
+                                'max' => 0,
+                                'mean' => 0,
+                                'median' => 0,
+                                'min' => 0,
+                                'stddev' => 0,
+                            ],
+                            'histogram_eval_op_rule_index' => [
+                                '75%' => 0,
+                                '90%' => 0,
+                                '95%' => 0,
+                                '99%' => 0,
+                                '99.9%' => 0,
+                                '99.99%' => 0,
+                                'count' => 1,
+                                'max' => 0,
+                                'mean' => 0,
+                                'median' => 0,
+                                'min' => 0,
+                                'stddev' => 0,
+                            ],
+                            'timer_eval_op_plug_ns' => 0,
+                            'timer_eval_op_resolve_ns' => 0,
+                            'timer_eval_op_rule_index_ns' => 0,
+                            'timer_rego_external_resolve_ns' => 0,
+                            'timer_rego_input_parse_ns' => 0,
+                            'timer_rego_query_eval_ns' => 506000,
+                            'timer_server_handler_ns' => 506000,
+                        ],
+                        'result' => [
+                            'allow' => false,
+                        ],
+                    ]
+                )))
+            ]
+        ];
     }
 }

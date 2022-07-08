@@ -38,10 +38,8 @@ use Psr\Http\Server\RequestHandlerInterface;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Log\InvalidArgumentException;
 use Psr\Log\LoggerInterface;
-use Psr\Log\LogLevel;
 use Segrax\OpenPolicyAgent\Client;
 use Segrax\OpenPolicyAgent\Exception\PolicyException;
-use Segrax\OpenPolicyAgent\Response;
 use Exception;
 
 /**
@@ -60,25 +58,14 @@ class Authorization implements MiddlewareInterface
     public const OPT_INPUT_CALLBACK          = 'inputCallback';
     public const OPT_POLICY_MISSING_CALLBACK = 'policy_missing_callback';
 
-    /**
-     * @var Client
-     */
-    private $client;
-
-    /**
-     * @var ?LoggerInterface
-     */
-    private $logger;
-
-    /**
-     * @var ResponseFactoryInterface
-     */
-    private $responseFactory;
+    private Client $client;
+    private ?LoggerInterface $logger;
+    private ResponseFactoryInterface $responseFactory;
 
     /**
      * @var array<string, mixed>
      */
-    private $options = [
+    private array $options = [
         self::OPT_ATTRIBUTE_RESULT          => 'openpolicyagent',
         self::OPT_ATTRIBUTE_INPUT           => 'token',
         self::OPT_ATTRIBUTE_INPUT_DEFAULT   => ['sub' => ''],
@@ -104,7 +91,6 @@ class Authorization implements MiddlewareInterface
     ) {
         $this->logger = $pLogger;
         if (empty($pOptions[self::OPT_POLICY])) {
-            $this->log(LogLevel::EMERGENCY, 'opa-authz: no policy set');
             throw new InvalidArgumentException('opa-authz: no policy set');
         }
 
@@ -115,11 +101,6 @@ class Authorization implements MiddlewareInterface
 
     /**
      * Process server request
-     *
-     * @param ServerRequestInterface $request
-     * @param RequestHandlerInterface $handler
-     *
-     * @return ResponseInterface
      */
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
@@ -144,18 +125,16 @@ class Authorization implements MiddlewareInterface
             return $handler->handle($request);
         }
 
-        $this->log(LogLevel::INFO, 'opa-authz: Unauthorized', [$input, $result]);
+        $this->logger?->info('opa-authz: Unauthorized', ['input' => $input, 'result' => $result]);
         return $this->responseFactory->createResponse(403, 'Unauthorized');
     }
 
     /**
      * Handle a missing policy
-     *
-     * @param array<mixed> $pInput
      */
     private function policyMissing(array $pInput): bool
     {
-        $this->log(LogLevel::WARNING, 'opa-authz: Policy not found', [$pInput, $this->options[self::OPT_POLICY]]);
+        $this->logger?->warning('opa-authz: Policy not found', [$pInput, $this->options[self::OPT_POLICY]]);
 
         // Is a handler available
         if (!is_callable($this->options[self::OPT_POLICY_MISSING_CALLBACK])) {
@@ -167,14 +146,12 @@ class Authorization implements MiddlewareInterface
             return false;
         }
 
-        $this->log(LogLevel::WARNING, 'opa-authz: Policy auth override', [$pInput, $this->options[self::OPT_POLICY]]);
+        $this->logger?->warning('opa-authz: Policy auth override', [$pInput, $this->options[self::OPT_POLICY]]);
         return true;
     }
 
     /**
      * Prepare the parameters to pass the policy
-     *
-     * @return array<mixed>
      */
     private function policyInputsPrepare(ServerRequestInterface $request): array
     {
@@ -193,17 +170,4 @@ class Authorization implements MiddlewareInterface
         return $input;
     }
 
-    /**
-     * Log if available
-     *
-     * @param array<mixed> $pContext
-     */
-    private function log(string $pLevel, string $pMessage, array $pContext = []): void
-    {
-        if (!is_null($this->logger)) {
-            // @codeCoverageIgnoreStart
-            $this->logger->log($pLevel, $pMessage, $pContext);
-            // @codeCoverageIgnoreEnd
-        }
-    }
 }
