@@ -31,18 +31,19 @@ declare(strict_types=1);
 
 namespace Segrax\OpenPolicyAgent\Middleware;
 
+use Closure;
 use DirectoryIterator;
 use Exception;
-use Phar;
-use PharData;
+use InvalidArgumentException;
 use Psr\Log\LoggerInterface;
-use Psr\Log\LogLevel;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use Psr\Http\Message\StreamFactoryInterface;
+use splitbrain\PHPArchive\Archive;
+use splitbrain\PHPArchive\Tar;
 
 /**
  * Class for serving policies up to a running OPA Agent
@@ -52,55 +53,55 @@ class Distributor implements MiddlewareInterface
     public const OPT_ATTRIBUTE_TOKEN = 'attrToken';
     public const OPT_AGENT_USER      = 'agentusername';
     public const OPT_TOKEN_KEY       = 'tokenfield';
-    public const OPT_POLICY_PATH     = 'policypath';
-    public const OPT_BUNDLE_CALLBACK = 'bundlecallback';
+
+    private ?LoggerInterface $logger = null;
+    private ResponseFactoryInterface $responseFactory;
+    private StreamFactoryInterface $streamFactory;
+    private ?Closure $dataCallable = null;
+    private string $policyPath;
+    private string $bundleRoute;
 
     /**
-     * @var ?LoggerInterface
-     */
-    private $logger = null;
-
-    /**
-     * @var ResponseFactoryInterface
-     */
-    private $responseFactory;
-
-    /**
-     * @var StreamFactoryInterface
-     */
-    private $streamFactory;
-
-    /**
-     * @var array<string, mixed>
+     * @var array<string, string>
      */
     private $options = [
         self::OPT_ATTRIBUTE_TOKEN   => 'token',
         self::OPT_AGENT_USER        => 'opa',
-        self::OPT_TOKEN_KEY         => 'sub',
-        self::OPT_POLICY_PATH       => '',
-        self::OPT_BUNDLE_CALLBACK   => null
+        self::OPT_TOKEN_KEY         => 'sub'
     ];
 
     /**
      * Class Setup
      *
-     * @param array<mixed> $pOptions
+     * @param array<string, string> $pOptions
      */
     public function __construct(
+        string $pBundleRoute,
+        string $pPolicyPath,
         array $pOptions,
         ResponseFactoryInterface $pResponseFactory,
         StreamFactoryInterface $pStreamFactory,
         ?LoggerInterface $pLogger = null
     ) {
-        if (empty($pOptions[self::OPT_POLICY_PATH])) {
-            $this->logger?->emergency('opa-distributor has no policies');
-            throw new Exception('opa-distributor has no policies');
-        }
 
         $this->logger = $pLogger;
         $this->responseFactory = $pResponseFactory;
         $this->streamFactory = $pStreamFactory;
+        $this->bundleRoute = $pBundleRoute;
+        $this->policyPath = $pPolicyPath;
+        if(!file_exists($this->policyPath)) {
+            throw new InvalidArgumentException('opa-distributor: Policy path is invalid');
+        }
+
         $this->options = array_replace_recursive($this->options, $pOptions);
+    }
+
+    /**
+     * Set a function to call to collect data to include
+     *  Closure should return an array<filename, datacontent>
+     */
+    public function setDataCallable(Closure $pDataCallable) {
+        $this->dataCallable = $pDataCallable;
     }
 
     /**
@@ -110,7 +111,7 @@ class Distributor implements MiddlewareInterface
     {
         $attribute = $request->getAttribute($this->options[self::OPT_ATTRIBUTE_TOKEN]);
         $path = $request->getUri()->getPath();
-        $pos = strpos($path, '/opa/bundles');
+        $pos = strpos($path, $this->bundleRoute);
 
         if (is_null($attribute) || ($pos === false || $pos > 0)) {
             return $handler->handle($request);
@@ -119,11 +120,10 @@ class Distributor implements MiddlewareInterface
         // If the subject is the OPA agent user, we provide the bundle
         if ($attribute['sub'] === $this->options[self::OPT_AGENT_USER]) {
             $bundleFile = $this->getBundle($request);
-            $stream = $this->streamFactory->createStreamFromFile($bundleFile, 'rb');
+            $stream = $this->streamFactory->createStream($bundleFile);
             $response = $this->responseFactory->createResponse(200)
                 ->withHeader('Content-Type', 'application/gzip')
                 ->withBody($stream);
-            unlink($bundleFile);
             return $response;
         }
 
@@ -135,28 +135,24 @@ class Distributor implements MiddlewareInterface
      */
     private function getBundle(ServerRequestInterface $request): string
     {
-        $filename = tempnam(sys_get_temp_dir(), 'bundle_') . '.tar';
-        try {
-            $bundle = new PharData($filename);
-            foreach ($this->getBundleFiles($this->options[self::OPT_POLICY_PATH]) as $file) {
-                $bundle->addFile($file[0], $file[1]);
-            }
+        $bundle = new Tar();
+        $bundle->create();
 
-            // Callback and collect data to bundle
-            if (is_callable($this->options[self::OPT_BUNDLE_CALLBACK])) {
-                $files = call_user_func($this->options[self::OPT_BUNDLE_CALLBACK], $request);
-                foreach ($files as $file => $content) {
-                    $bundle->addFromString($file, $content);
-                }
-            }
-
-            $bundle->compress(Phar::GZ);
-        } catch (Exception $e) {
-            $this->logger?->emergency('opa-distributor: Failed to build OPA bundle', [$e]);
-            throw new Exception('opa-distributor: Failed to build OPA bundle');
+        foreach ($this->getBundleFiles($this->policyPath) as $file) {
+            $bundle->addFile($file[0], $file[1]);
         }
 
-        return $filename . '.gz';
+        // Callback and collect data to bundle
+        if (is_callable($this->dataCallable)) {
+            $files = call_user_func($this->dataCallable, $request);
+            foreach ($files as $file => $content) {
+                $bundle->addData($file, $content);
+            }
+        }
+
+        $bundle->setCompression(9, Archive::COMPRESS_GZIP);
+
+        return $bundle->getArchive();
     }
 
     /**

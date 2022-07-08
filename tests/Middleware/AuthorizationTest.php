@@ -39,7 +39,6 @@ use PHPUnit\Framework\TestCase;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\ResponseInterface;
 use Segrax\OpenPolicyAgent\Client;
-use Segrax\OpenPolicyAgent\Exception\PolicyException;
 use Segrax\OpenPolicyAgent\Middleware\Authorization;
 use Slim\Psr7\Factory\RequestFactory;
 use Slim\Psr7\Factory\ResponseFactory;
@@ -137,7 +136,12 @@ class AuthorizationTest extends TestCase
         );
 
         $response = $this->executeMiddleware('unittest/api', [
+            Authorization::OPT_INPUT_CALLBACK => function() {
+                return ['some' => 'thing'];
+            },
             Authorization::OPT_POLICY_MISSING_CALLBACK => function (array $pInputs) {
+                $this->assertArrayHasKey('some', $pInputs);
+                $this->assertSame('thing', $pInputs['some']);
                 return true;
             }
         ]);

@@ -89,11 +89,11 @@ class Authorization implements MiddlewareInterface
         ResponseFactoryInterface $pResponseFactory,
         LoggerInterface $pLogger = null
     ) {
-        $this->logger = $pLogger;
         if (empty($pOptions[self::OPT_POLICY])) {
             throw new InvalidArgumentException('opa-authz: no policy set');
         }
 
+        $this->logger = $pLogger;
         $this->client = $pClient;
         $this->responseFactory = $pResponseFactory;
         $this->options = array_replace_recursive($this->options, $pOptions);
