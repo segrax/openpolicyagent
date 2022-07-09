@@ -1,7 +1,7 @@
 <?php
 
 /*
-Copyright (c) 2019 Robert Crossfield
+Copyright (c) 2019-2022 Robert Crossfield
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -33,11 +33,11 @@ namespace Segrax\OpenPolicyAgent;
 
 use RuntimeException;
 use Psr\Log\LoggerInterface;
-use Psr\Http\Client\ClientExceptionInterface;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Client\NetworkExceptionInterface;
 use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
+use Segrax\OpenPolicyAgent\Agent\Provenance;
 use Segrax\OpenPolicyAgent\Exception\ServerException;
 use Segrax\OpenPolicyAgent\Response as OpaResponse;
 
@@ -54,7 +54,7 @@ class Client
     private ?LoggerInterface $logger = null;
     private ClientInterface $httpClient;
     private RequestFactoryInterface $requestFactory;
-    
+
     /**
      * Class Setup
      */
@@ -70,10 +70,8 @@ class Client
 
     /**
      * Get the version information of the agent
-     *
-     * @return array<string>
      */
-    public function getAgentVersion(): array
+    public function getAgentVersion(): ?Provenance
     {
         $url = $this->getUrlQuery($this->getDataUrl(), false, false, false, true);
         $result = $this->executeGet($url);
@@ -172,7 +170,7 @@ class Client
             $request = $request->withHeader('Authorization', 'Bearer ' . $this->agentToken);
         }
 
-        if(strlen($pBody)) {
+        if (strlen($pBody)) {
             $request->getBody()->write($pBody);
         }
 
@@ -182,14 +180,10 @@ class Client
             $this->logger?->error("opa-client: Connection Failed", ['url' => $pUrl]);
             throw new RuntimeException("OPA Client unavailable: " . $exception->getMessage(), 0, $exception);
         }
-        //echo $response->getStatusCode();
-        //var_dump(json_encode((string) $response->getBody()));exit;
 
-        if($response->getStatusCode() === 400) {
+        if ($response->getStatusCode() === 400) {
             throw new ServerException($response->getBody()->__toString());
         }
-        
-        //var_dump(json_encode((string) $response->getBody()));exit;
 
         return $response;
     }
@@ -204,7 +198,6 @@ class Client
         bool $pInstrument,
         bool $pProvenance
     ): string {
-
         $query = http_build_query([
             'explain' => $pExplain == true ? 'true' : 'false',
             'metrics' => $pMetrics == true ? 'true' : 'false',

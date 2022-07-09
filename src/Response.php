@@ -1,7 +1,7 @@
 <?php
 
 /*
-Copyright (c) 2019 Robert Crossfield
+Copyright (c) 2019-2022 Robert Crossfield
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -33,6 +33,7 @@ namespace Segrax\OpenPolicyAgent;
 
 use Psr\Http\Message\ResponseInterface;
 use Segrax\OpenPolicyAgent\Exception\PolicyException;
+use Segrax\OpenPolicyAgent\Agent\Provenance;
 
 /**
  * Holds a response from OPA
@@ -48,21 +49,29 @@ class Response
     private array $result = [];
     private array $metrics = [];
     private array $explain = [];
-    private array  $version = [];
+    private ?Provenance $version = null;
     private string $decisionid = '';
 
     /**
      * Create from a HTTP response
+     * 
+     * @throws PolicyException If policy result is not found
      */
     public function __construct(ResponseInterface $pResponse)
     {
+        /**
+         * @var array
+         */
         $data = json_decode($pResponse->getBody()->__toString(), true, 512, JSON_THROW_ON_ERROR);
 
         $this->decisionid = $data[self::OPA_DECISIONID_ARRAY] ?? '';
         $this->explain = $data[self::OPA_EXPLAIN_ARRAY] ?? [];
         $this->result = $data[self::OPA_RESULT_ARRAY] ?? [];
         $this->metrics = $data[self::OPA_METRIC_ARRAY] ?? [];
-        $this->version = $data[self::OPA_PROVENANCE_ARRAY] ?? [];
+
+        if (isset($data[self::OPA_PROVENANCE_ARRAY])) {
+            $this->version = new Provenance($data[self::OPA_PROVENANCE_ARRAY]);
+        }
 
         if (!isset($data[self::OPA_RESULT_ARRAY])) {
             throw new PolicyException($this, 'Policy not found');
@@ -118,11 +127,9 @@ class Response
     }
 
     /**
-     * Get the version
-     *
-     * @return array<mixed>
+     * Get the agent version
      */
-    public function getVersion(): array
+    public function getVersion(): ?Provenance
     {
         return $this->version;
     }

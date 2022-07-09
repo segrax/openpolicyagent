@@ -29,32 +29,26 @@ SOFTWARE.
 
 declare(strict_types=1);
 
-namespace Segrax\OpenPolicyAgent\Exception;
+namespace Segrax\OpenPolicyAgent\Agent;
 
-use RuntimeException;
-use Segrax\OpenPolicyAgent\Response as OpaResponse;
-
-/**
- * Exception thrown when a policy fails to return a result
- */
-class PolicyException extends RuntimeException
+class Bundle
 {
-    private OpaResponse $response;
+    private string $name;
+    private string $revision;
 
-    /**
-     * Class Setup
-     */
-    public function __construct(OpaResponse $pResponse, string $pMessage)
+    public function __construct(string $pName, array $pData)
     {
-        $this->response = $pResponse;
-        parent::__construct($pMessage);
+        $this->name = $pName;
+        $this->revision = $pData['revision'];
     }
 
-    /**
-     * Get the response
-     */
-    public function getResponse(): OpaResponse
+    public function getName(): string
     {
-        return $this->response;
+        return $this->name;
+    }
+
+    public function getRevision(): string
+    {
+        return $this->revision;
     }
 }

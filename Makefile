@@ -1,21 +1,10 @@
-# Name of the container to execute
-TEST_CONTAINER = segrax/php-testing
+RUN = docker-compose run php
 
-# Location to mount inside the container
-CONTAINER_MOUNT = /srv/app
+.DEFAULT_GOAL : test
 
-# Location to mount from the host
-CONTAINER_MOUNT_VOLUME = ${CURDIR}:${CONTAINER_MOUNT}
-
-# Docker run parameters
-DOCKER_PARAMS = --rm --volume ${CONTAINER_MOUNT_VOLUME}
-DOCKER_RUN_CMD = docker run $(DOCKER_PARAMS)
-
-.DEFAULT_GOAL := default
-
-# Pass CLI params by default to container
-.DEFAULT:
-	$(DOCKER_RUN_CMD) $(TEST_CONTAINER) $@
-
+all: style test
 test:
-	$(DOCKER_RUN_CMD) $(TEST_CONTAINER) tests
+	$(RUN) env XDEBUG_MODE=coverage vendor/bin/phpunit
+style:
+	$(RUN) env XDEBUG_MODE=off vendor/bin/php-cs-fixer fix --config=.php-cs-fixer.php
+

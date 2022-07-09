@@ -1,7 +1,7 @@
 <?php
 
 /*
-Copyright (c) 2019 Robert Crossfield
+Copyright (c) 2019-2022 Robert Crossfield
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -169,5 +169,4 @@ class Authorization implements MiddlewareInterface
         }
         return $input;
     }
-
 }

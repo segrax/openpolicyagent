@@ -66,7 +66,6 @@ class AuthorizationTest extends TestCase
         $this->client = new Client(null, $this->httpclient, new RequestFactory(), 'http', 'fake-token');
 
         $this->defaultResponse = function () {
-
             $response = (new ResponseFactory())->createResponse(200);
             $response->getBody()->write('Success');
             return $response;
@@ -78,8 +77,9 @@ class AuthorizationTest extends TestCase
      */
     protected function executeMiddleware(string $pName, array $pOptions = []): ResponseInterface
     {
-        if (!isset($pOptions[Authorization::OPT_POLICY]))
+        if (!isset($pOptions[Authorization::OPT_POLICY])) {
             $pOptions[Authorization::OPT_POLICY] = $pName;
+        }
 
         $collection = new MiddlewareCollection([
             new Authorization($pOptions, $this->client, new ResponseFactory())
@@ -122,7 +122,7 @@ class AuthorizationTest extends TestCase
     public function testPolicyMissing(): void
     {
         $this->httpclient->method('sendRequest')->willReturn(
-            new Response(200, null, (new StreamFactory)->createStream(json_encode([])))
+            new Response(200, null, (new StreamFactory())->createStream(json_encode([])))
         );
 
         $this->expectException(Exception::class);
@@ -132,11 +132,11 @@ class AuthorizationTest extends TestCase
     public function testPolicyMissingCallbackSuccess(): void
     {
         $this->httpclient->method('sendRequest')->willReturn(
-            new Response(200, null, (new StreamFactory)->createStream(json_encode([])))
+            new Response(200, null, (new StreamFactory())->createStream(json_encode([])))
         );
 
         $response = $this->executeMiddleware('unittest/api', [
-            Authorization::OPT_INPUT_CALLBACK => function() {
+            Authorization::OPT_INPUT_CALLBACK => function () {
                 return ['some' => 'thing'];
             },
             Authorization::OPT_POLICY_MISSING_CALLBACK => function (array $pInputs) {
@@ -154,7 +154,7 @@ class AuthorizationTest extends TestCase
     public function testPolicyMissingCallbackFail(): void
     {
         $this->httpclient->method('sendRequest')->willReturn(
-            new Response(200, null, (new StreamFactory)->createStream(json_encode([])))
+            new Response(200, null, (new StreamFactory())->createStream(json_encode([])))
         );
 
         $response = $this->executeMiddleware('unittest/api', [
@@ -170,7 +170,7 @@ class AuthorizationTest extends TestCase
     {
         return [
             [
-                new Response(200, null, (new StreamFactory)->createStream(json_encode(
+                new Response(200, null, (new StreamFactory())->createStream(json_encode(
                     [
                         'result' => ['allow' => true]
                     ]
@@ -183,7 +183,7 @@ class AuthorizationTest extends TestCase
     {
         return [
             [
-                new Response(200, null, (new StreamFactory)->createStream(json_encode(
+                new Response(200, null, (new StreamFactory())->createStream(json_encode(
                     [
                         'result' => ['allow' => false]
                     ]

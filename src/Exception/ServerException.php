@@ -1,7 +1,7 @@
 <?php
 
 /*
-Copyright (c) 2019 Robert Crossfield
+Copyright (c) 2019-2022 Robert Crossfield
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -38,14 +38,14 @@ use RuntimeException;
  */
 class ServerException extends RuntimeException
 {
-/*  private const MsgCompileModuleError         = "error(s) occurred while compiling module(s)";
-    private const MsgParseQueryError            = "error(s) occurred while parsing query";
-    private const MsgCompileQueryError          = "error(s) occurred while compiling query";
-    private const MsgEvaluationError            = "error(s) occurred while evaluating query";
-    private const MsgUnauthorizedUndefinedError = "authorization policy missing or undefined";
-    private const MsgUnauthorizedError          = "request rejected by administrative policy";
-    private const MsgUndefinedError             = "document missing or undefined";
-    private const MsgPluginConfigError          = "error(s) occurred while configuring plugin(s)";*/
+    /*  private const MsgCompileModuleError         = "error(s) occurred while compiling module(s)";
+        private const MsgParseQueryError            = "error(s) occurred while parsing query";
+        private const MsgCompileQueryError          = "error(s) occurred while compiling query";
+        private const MsgEvaluationError            = "error(s) occurred while evaluating query";
+        private const MsgUnauthorizedUndefinedError = "authorization policy missing or undefined";
+        private const MsgUnauthorizedError          = "request rejected by administrative policy";
+        private const MsgUndefinedError             = "document missing or undefined";
+        private const MsgPluginConfigError          = "error(s) occurred while configuring plugin(s)";*/
     private const OPA_KEY_ERRORCODE   = 'code';
     private const OPA_KEY_ERRORMSG    = 'message';
     private const OPA_KEY_ERRORS      = 'errors';

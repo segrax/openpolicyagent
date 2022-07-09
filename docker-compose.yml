@@ -1,0 +1,11 @@
+version: '3.7'
+services:
+  php:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+    - ./:/srv/app
+    environment:
+      COMPOSER_AUTH: ${COMPOSER_AUTH:-''}
+      XDEBUG_MODE: ${XDEBUG_MODE:-off}

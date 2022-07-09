@@ -46,7 +46,9 @@
         "phpunit/phpunit": "^9.5",
         "slim/psr7": "^1.5",
         "splitbrain/php-archive": "^1.2",
-        "guzzlehttp/guzzle": "^7.4"
+        "guzzlehttp/guzzle": "^7.4",
+        "friendsofphp/php-cs-fixer": "^3.8",
+        "vimeo/psalm": "^4.24"
     },
 
     "suggest": {

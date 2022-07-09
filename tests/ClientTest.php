@@ -1,7 +1,7 @@
 <?php
 
 /*
-Copyright (c) 2019 Robert Crossfield
+Copyright (c) 2019-2022 Robert Crossfield
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -61,23 +61,26 @@ class ClientTest extends TestCase
     }
 
     /**
-     * @dataProvider agentResponseProvider
+     * @dataProvider agentProvenanceResponse
      */
-    public function testAgentVersion(Response $pAgentResponse): void
+    public function testAgentVersion(array $pAgentResponse): void
     {
-        $this->httpclient->method('sendRequest')->willReturn($pAgentResponse);
+        $this->httpclient->method('sendRequest')->willReturn(
+            new Response(
+                200,
+                null,
+                (new StreamFactory())->createStream(json_encode($pAgentResponse))
+            )
+        );
 
         $response = $this->client->getAgentVersion();
-        $this->assertArrayHasKey('version', $response);
-        $this->assertArrayHasKey('build_commit', $response);
-        $this->assertArrayHasKey('build_timestamp', $response);
-        $this->assertArrayHasKey('build_hostname', $response);
+        $this->assertSame($pAgentResponse['provenance']['version'], $response->getVersion());
     }
 
     public function testDataUpdate(): void
     {
         $this->httpclient->method('sendRequest')->willReturn(
-            new Response(204, null, (new StreamFactory)->createStream(json_encode("data")))
+            new Response(204, null, (new StreamFactory())->createStream(json_encode("data")))
         );
 
         $this->assertSame(true, $this->client->dataUpdate('random', 'no content'));
@@ -86,7 +89,7 @@ class ClientTest extends TestCase
     public function testDataUpdateServerError(): void
     {
         $this->httpclient->method('sendRequest')->willReturn(
-            new Response(500, null, (new StreamFactory)->createStream(json_encode("data")))
+            new Response(500, null, (new StreamFactory())->createStream(json_encode("data")))
         );
 
         $this->assertSame(false, $this->client->dataUpdate('random', 'no content'));
@@ -118,7 +121,7 @@ class ClientTest extends TestCase
     public function testPolicyUpdate(): void
     {
         $this->httpclient->method('sendRequest')->willReturn(
-            new Response(204, null, (new StreamFactory)->createStream(json_encode("data")))
+            new Response(204, null, (new StreamFactory())->createStream(json_encode("data")))
         );
 
         $this->assertSame(true, $this->client->policyUpdate('random', 'package random.api', false));
@@ -185,7 +188,7 @@ class ClientTest extends TestCase
     public function testPolicyMissing(): void
     {
         $this->httpclient->method('sendRequest')->willReturn(
-            new Response(200, null, (new StreamFactory)->createStream(json_encode([])))
+            new Response(200, null, (new StreamFactory())->createStream(json_encode([])))
         );
 
         $this->expectException(PolicyException::class);
@@ -195,7 +198,7 @@ class ClientTest extends TestCase
     public function testPolicyMissingCatch(): void
     {
         $this->httpclient->method('sendRequest')->willReturn(
-            new Response(200, null, (new StreamFactory)->createStream(json_encode([])))
+            new Response(200, null, (new StreamFactory())->createStream(json_encode([])))
         );
 
         try {
@@ -273,21 +276,22 @@ class ClientTest extends TestCase
         );
     }
 
-    public function agentResponseProvider(): array
+    public function agentProvenanceResponse(): array
     {
         return [
             [
-                new Response(200, null, (new StreamFactory)->createStream(json_encode(
-                    [
-                        'provenance' => [
-                            'version' => '0.42.0',
-                            'build_commit' => '9b5fb9b',
-                            'build_timestamp' => '2022-07-04T12:23:16Z',
-                            'build_hostname' => 'd3afd1ae56c8'
-                        ],
-                        'result' => []
-                    ]
-                )))
+                [
+                    'provenance' => [
+                        'version' => '0.42.0',
+                        'build_commit' => '9b5fb9b',
+                        'build_timestamp' => '2022-07-04T12:23:16Z',
+                        'build_hostname' => 'd3afd1ae56c8',
+                        'bundles' => [
+                            "file" => ["revision" => '123456']
+                        ]
+                    ],
+                    'result' => []
+                ]
             ]
         ];
     }
@@ -296,7 +300,7 @@ class ClientTest extends TestCase
     {
         return [
             [
-                new Response(400, null, (new StreamFactory)->createStream(json_encode(
+                new Response(400, null, (new StreamFactory())->createStream(json_encode(
                     [
                         'code' => 'invalid_parameter',
                         'message' => 'path test/api is owned by bundle "response.tar.gz"'
@@ -310,7 +314,7 @@ class ClientTest extends TestCase
     {
         return [
             [
-                new Response(400, null, (new StreamFactory)->createStream(json_encode(
+                new Response(400, null, (new StreamFactory())->createStream(json_encode(
                     [
                         'code' => 'invalid_parameter',
                         'message' => 'error(s) occurred while compiling module(s)',
@@ -335,7 +339,7 @@ class ClientTest extends TestCase
     {
         return [
             [
-                new Response(200, null, (new StreamFactory)->createStream(json_encode(
+                new Response(200, null, (new StreamFactory())->createStream(json_encode(
                     [
                         'result' => ['allow' => true]
                     ]
@@ -348,7 +352,7 @@ class ClientTest extends TestCase
     {
         return [
             [
-                new Response(200, null, (new StreamFactory)->createStream(json_encode(
+                new Response(200, null, (new StreamFactory())->createStream(json_encode(
                     [
                         'result' => ['allow' => false]
                     ]
@@ -361,7 +365,7 @@ class ClientTest extends TestCase
     {
         return [
             [
-                new Response(200, null, (new StreamFactory)->createStream(json_encode(
+                new Response(200, null, (new StreamFactory())->createStream(json_encode(
                     [
                         'result' => ['i' => 0, 'name' => 'test']
                     ]
@@ -374,7 +378,7 @@ class ClientTest extends TestCase
     {
         return [
             [
-                new Response(400, null, (new StreamFactory)->createStream(json_encode(
+                new Response(400, null, (new StreamFactory())->createStream(json_encode(
                     [
                         'code' => 'invalid_parameter',
                         'message' => 'error(s) occurred while parsing query',
@@ -403,7 +407,7 @@ class ClientTest extends TestCase
     {
         return [
             [
-                new Response(200, null, (new StreamFactory)->createStream(json_encode(
+                new Response(200, null, (new StreamFactory())->createStream(json_encode(
                     [
                         'provenance' => [
                             'version' => '0.42.0',

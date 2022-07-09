@@ -29,32 +29,54 @@ SOFTWARE.
 
 declare(strict_types=1);
 
-namespace Segrax\OpenPolicyAgent\Exception;
+namespace Segrax\OpenPolicyAgent\Agent;
 
-use RuntimeException;
-use Segrax\OpenPolicyAgent\Response as OpaResponse;
-
-/**
- * Exception thrown when a policy fails to return a result
- */
-class PolicyException extends RuntimeException
+class Provenance
 {
-    private OpaResponse $response;
+    private string $version;
+    private string $buildCommit;
+    private string $buildTimestamp;
+    private string $buildHostname;
 
-    /**
-     * Class Setup
-     */
-    public function __construct(OpaResponse $pResponse, string $pMessage)
+    private array $bundles = [];
+
+    public function __construct(array $pVersionData)
     {
-        $this->response = $pResponse;
-        parent::__construct($pMessage);
+        $this->version = $pVersionData['version'];
+        $this->buildCommit = $pVersionData['build_commit'];
+        $this->buildTimestamp = $pVersionData['build_timestamp'];
+        $this->buildHostname = $pVersionData['build_hostname'];
+
+        foreach ($pVersionData['bundles'] as $name => $data) {
+            $this->bundles[$name] = new Bundle($name, $data);
+        }
+    }
+
+    public function getVersion(): string
+    {
+        return $this->version;
+    }
+
+    public function getBuildCommit(): string
+    {
+        return $this->buildCommit;
+    }
+
+    public function getBuildTimestamp(): string
+    {
+        return $this->buildTimestamp;
+    }
+
+    public function getBuildHostname(): string
+    {
+        return $this->buildHostname;
     }
 
     /**
-     * Get the response
+     * @return array<string, Bundle>
      */
-    public function getResponse(): OpaResponse
+    public function getBundles(): array
     {
-        return $this->response;
+        return $this->bundles;
     }
 }

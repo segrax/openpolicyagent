@@ -1,7 +1,7 @@
 <?php
 
 /*
-Copyright (c) 2022 Robert Crossfield
+Copyright (c) 2019-2022 Robert Crossfield
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -72,7 +72,6 @@ class DistributorTest extends TestCase
         $this->client = new Client(null, $this->httpclient, new RequestFactory(), 'http', 'fake-token');
 
         $this->defaultResponse = function () {
-
             $response = (new ResponseFactory())->createResponse(404);
             $response->getBody()->write('Not Found');
             return $response;
@@ -89,7 +88,6 @@ class DistributorTest extends TestCase
         ?Closure $pDataCb = null,
         array $pOptions = []
     ): ResponseInterface {
-
         $distributor = new Distributor(
             '/opa/bundles',
             $pPolicyPath,

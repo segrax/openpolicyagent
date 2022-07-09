@@ -1,7 +1,7 @@
 <?php
 
 /*
-Copyright (c) 2019 Robert Crossfield
+Copyright (c) 2019-2022 Robert Crossfield
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -83,13 +83,12 @@ class Distributor implements MiddlewareInterface
         StreamFactoryInterface $pStreamFactory,
         ?LoggerInterface $pLogger = null
     ) {
-
         $this->logger = $pLogger;
         $this->responseFactory = $pResponseFactory;
         $this->streamFactory = $pStreamFactory;
         $this->bundleRoute = $pBundleRoute;
         $this->policyPath = $pPolicyPath;
-        if(!file_exists($this->policyPath)) {
+        if (!file_exists($this->policyPath)) {
             throw new InvalidArgumentException('opa-distributor: Policy path is invalid');
         }
 
@@ -100,7 +99,8 @@ class Distributor implements MiddlewareInterface
      * Set a function to call to collect data to include
      *  Closure should return an array<filename, datacontent>
      */
-    public function setDataCallable(Closure $pDataCallable) {
+    public function setDataCallable(Closure $pDataCallable): void
+    {
         $this->dataCallable = $pDataCallable;
     }
 
@@ -113,7 +113,7 @@ class Distributor implements MiddlewareInterface
         $path = $request->getUri()->getPath();
         $pos = strpos($path, $this->bundleRoute);
 
-        if (is_null($attribute) || ($pos === false || $pos > 0)) {
+        if (is_null($attribute) || !isset($attribute['sub']) || ($pos === false || $pos > 0)) {
             return $handler->handle($request);
         }
 
@@ -144,6 +144,9 @@ class Distributor implements MiddlewareInterface
 
         // Callback and collect data to bundle
         if (is_callable($this->dataCallable)) {
+            /**
+             * @var array<string, string>
+             */
             $files = call_user_func($this->dataCallable, $request);
             foreach ($files as $file => $content) {
                 $bundle->addData($file, $content);
@@ -152,13 +155,13 @@ class Distributor implements MiddlewareInterface
 
         $bundle->setCompression(9, Archive::COMPRESS_GZIP);
 
-        return $bundle->getArchive();
+        return (string) $bundle->getArchive();
     }
 
     /**
      * Find all files to put in the bundle
      *
-     * @return array<mixed>
+     * @return list<array<0|1|string, string>>
      */
     private function getBundleFiles(string $pPath): array
     {
