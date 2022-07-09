@@ -79,9 +79,6 @@ class Authorization implements MiddlewareInterface
      * Class Setup
      *
      * @param array<mixed,string> $pOptions
-     * @param Client $pClient
-     * @param ResponseFactoryInterface $pResponseFactory
-     * @param LoggerInterface $pLogger
      */
     public function __construct(
         array $pOptions,

@@ -21,6 +21,7 @@ composer require segrax/open-policy-agent
 ### Client Usage
 ```php
 use Segrax\OpenPolicyAgent\Client;
+use GuzzleHttp\Client as GuzzleHttpClient;
 
 $apiPolicy = "package my.api
               default allow=false
@@ -29,8 +30,7 @@ $apiPolicy = "package my.api
                   input.user == \"a random user\"
               }";
 
-$client = new Client([ Client::OPT_AGENT_URL => 'http://127.0.0.1:8181/',
-                       Client::OPT_AUTH_TOKEN => 'MyToken']);
+$client = new Client(null, new GuzzleHttpClient(), new RequestFactory(), 'http://127.0.0.1:8181', 'MyToken');
 
 // Push a policy to the agent
 $client->policyUpdate('my/api', $apiPolicy, false);
@@ -53,7 +53,7 @@ use Segrax\OpenPolicyAgent\Middleware\Authorization;
 
 $app = AppFactory::create();
 
-$client = new Client([Client::OPT_AGENT_URL => 'http://127.0.0.1:8181/']);
+$client = new Client(null, new GuzzleHttpClient(), new RequestFactory(), 'http://127.0.0.1:8181', 'MyToken');
 $app->add(new Authorization(
                 [Authorization::OPT_POLICY => 'auth/api'],
                 $client,
@@ -71,8 +71,9 @@ use Segrax\OpenPolicyAgent\Middleware\Distributor;
 $app = AppFactory::create();
 
 $app->add(new Distributor(
-                        [Distributor::OPT_POLICY_PATH => __DIR__ . '/opa',
-                         Distributor::OPT_AGENT_USER => 'opa'],
+                        '/opa/bundles/',        // Route
+                        __DIR__ . '/opa',       // Policy Path
+                        [Distributor::OPT_AGENT_USER => 'opa'], // Token Sub Field
                         $app->getResponseFactory(),
                         new StreamFactory(),
                         $app->getLogger()));
@@ -91,7 +92,7 @@ make tests
 
 ## Security
 
-If you discover any security related issues, please email [segrax19@gmail.com](mailto:segrax19@gmail.com).
+If you discover any security related issues, please email [robcrossfield@gmail.com](mailto:robcrossfield@gmail.com).
 
 ## License
 

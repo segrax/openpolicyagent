@@ -181,7 +181,7 @@ class Client
             throw new RuntimeException("OPA Client unavailable: " . $exception->getMessage(), 0, $exception);
         }
 
-        if ($response->getStatusCode() === 400) {
+        if ($response->getStatusCode() === 400 || $response->getStatusCode() === 500) {
             throw new ServerException($response->getBody()->__toString());
         }
 

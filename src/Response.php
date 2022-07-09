@@ -54,7 +54,7 @@ class Response
 
     /**
      * Create from a HTTP response
-     * 
+     *
      * @throws PolicyException If policy result is not found
      */
     public function __construct(ResponseInterface $pResponse)
