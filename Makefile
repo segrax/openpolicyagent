@@ -3,6 +3,8 @@ RUN = docker-compose run php
 .DEFAULT_GOAL : test
 
 all: style test
+composer-install:
+	$(RUN) env XDEBUG_MODE=coverage composer install --dev
 tests:
 	$(RUN) env XDEBUG_MODE=coverage vendor/bin/phpunit
 style:

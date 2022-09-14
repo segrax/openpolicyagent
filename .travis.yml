@@ -6,8 +6,8 @@ services:
   - docker
 
 script:
-  - make composer-install-dev
-  - make test
+  - make composer-install
+  - make tests
 
 after_success:
     - bash <(curl -s https://codecov.io/bash)
