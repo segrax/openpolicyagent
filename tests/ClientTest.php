@@ -80,7 +80,7 @@ class ClientTest extends TestCase
     public function testDataUpdate(): void
     {
         $this->httpclient->method('sendRequest')->willReturn(
-            new Response(204, null, (new StreamFactory())->createStream(json_encode("data")))
+            new Response(204, null, (new StreamFactory())->createStream('{"data":"test"}'))
         );
 
         $this->assertSame(true, $this->client->dataUpdate('random', 'no content'));
@@ -89,10 +89,11 @@ class ClientTest extends TestCase
     public function testDataUpdateServerError(): void
     {
         $this->httpclient->method('sendRequest')->willReturn(
-            new Response(500, null, (new StreamFactory())->createStream(json_encode("data")))
+            new Response(500, null, (new StreamFactory())->createStream(json_encode(['message' => 'a', 'code' => 'invalid_parameter'])))
         );
 
-        $this->assertSame(false, $this->client->dataUpdate('random', 'no content'));
+        $this->expectException(ServerException::class);
+        $this->assertSame(false, $this->client->dataUpdate('random', '{"data":"test"}'));
     }
 
     /**

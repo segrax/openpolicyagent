@@ -41,6 +41,8 @@ use Psr\Log\LoggerInterface;
 use Segrax\OpenPolicyAgent\Client;
 use Segrax\OpenPolicyAgent\Exception\PolicyException;
 use Exception;
+use Segrax\OpenPolicyAgent\Parameters\CollectorInterface;
+use Segrax\OpenPolicyAgent\Parameters\Inputs;
 
 /**
  * Class for providing an authorization layer to the middleware
@@ -55,12 +57,12 @@ class Authorization implements MiddlewareInterface
     public const OPT_ATTRIBUTE_INPUT         = 'attrInput';
     public const OPT_POLICY                  = 'policy';
     public const OPT_POLICY_ALLOW            = 'policy_allow';
-    public const OPT_INPUT_CALLBACK          = 'inputCallback';
     public const OPT_POLICY_MISSING_CALLBACK = 'policy_missing_callback';
 
     private Client $client;
     private ?LoggerInterface $logger;
     private ResponseFactoryInterface $responseFactory;
+    private ?CollectorInterface $inputCollector;
 
     /**
      * @var array<string, mixed>
@@ -71,7 +73,6 @@ class Authorization implements MiddlewareInterface
         self::OPT_ATTRIBUTE_INPUT_DEFAULT   => ['sub' => ''],
         self::OPT_POLICY                    => '',
         self::OPT_POLICY_ALLOW              => 'allow',
-        self::OPT_INPUT_CALLBACK            => null,
         self::OPT_POLICY_MISSING_CALLBACK   => null
     ];
 
@@ -84,6 +85,7 @@ class Authorization implements MiddlewareInterface
         array $pOptions,
         Client $pClient,
         ResponseFactoryInterface $pResponseFactory,
+        Inputs $pInputCollector = null,
         LoggerInterface $pLogger = null
     ) {
         if (empty($pOptions[self::OPT_POLICY])) {
@@ -93,6 +95,7 @@ class Authorization implements MiddlewareInterface
         $this->logger = $pLogger;
         $this->client = $pClient;
         $this->responseFactory = $pResponseFactory;
+        $this->inputCollector = $pInputCollector;
         $this->options = array_replace_recursive($this->options, $pOptions);
     }
 
@@ -155,14 +158,18 @@ class Authorization implements MiddlewareInterface
         $name = $this->options[self::OPT_ATTRIBUTE_INPUT];
         $attribute = $request->getAttribute($name, $this->options[self::OPT_ATTRIBUTE_INPUT_DEFAULT]);
 
-        $input = [  'path'   => array_values(array_filter(explode('/', urldecode($request->getUri()->getPath())))),
-                    'method' => $request->getMethod(),
-                    'user' => $attribute['sub'] ?? '',
-                    $name => $attribute
-                 ];
+        $input = [
+            'path'   => array_values(array_filter(explode('/', urldecode($request->getUri()->getPath())))),
+            'method' => $request->getMethod(),
+            'user' => $attribute['sub'] ?? '',
+            $name => $attribute
+        ];
 
-        if (is_callable($this->options[self::OPT_INPUT_CALLBACK])) {
-            $input = array_merge_recursive(call_user_func($this->options[self::OPT_INPUT_CALLBACK], $request), $input);
+        if (!is_null($this->inputCollector)) {
+            $input = array_merge_recursive(
+                $this->inputCollector->collect($request),
+                $input
+            );
         }
         return $input;
     }

@@ -58,7 +58,7 @@ class Client
     /**
      * Class Setup
      */
-    public function __construct(?LoggerInterface $pLogger = null, ClientInterface $pHttpClient, RequestFactoryInterface $pRequestFactory, string $pAgentUrl, string $pAgentToken = '')
+    public function __construct(?LoggerInterface $pLogger, ClientInterface $pHttpClient, RequestFactoryInterface $pRequestFactory, string $pAgentUrl, string $pAgentToken = '')
     {
         $this->agentUrl = (rtrim($pAgentUrl, '/') . '/');
         $this->agentToken = $pAgentToken;

@@ -38,13 +38,24 @@ use Equip\Dispatch\MiddlewareCollection;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
 use Segrax\OpenPolicyAgent\Client;
 use Segrax\OpenPolicyAgent\Middleware\Authorization;
+use Segrax\OpenPolicyAgent\Parameters\CollectorInterface;
+use Segrax\OpenPolicyAgent\Parameters\Inputs;
 use Slim\Psr7\Factory\RequestFactory;
 use Slim\Psr7\Factory\ResponseFactory;
 use Slim\Psr7\Factory\ServerRequestFactory;
 use Slim\Psr7\Factory\StreamFactory;
 use Slim\Psr7\Response;
+
+class Collector implements CollectorInterface
+{
+    public function collect(ServerRequestInterface $pRequest): array
+    {
+        return ['some' => 'thing'];
+    }
+}
 
 /**
  * Set of tests for the PSR-15 Authorization middleware
@@ -54,6 +65,7 @@ class AuthorizationTest extends TestCase
     private Closure $defaultResponse;
     private ClientInterface $httpclient;
     private Client $client;
+    private Inputs $inputs;
 
     /**
      * Set a default success response
@@ -64,6 +76,7 @@ class AuthorizationTest extends TestCase
 
         $this->httpclient = $this->createMock(ClientInterface::class);
         $this->client = new Client(null, $this->httpclient, new RequestFactory(), 'http', 'fake-token');
+        $this->inputs = new Inputs();
 
         $this->defaultResponse = function () {
             $response = (new ResponseFactory())->createResponse(200);
@@ -82,7 +95,7 @@ class AuthorizationTest extends TestCase
         }
 
         $collection = new MiddlewareCollection([
-            new Authorization($pOptions, $this->client, new ResponseFactory())
+            new Authorization($pOptions, $this->client, new ResponseFactory(), $this->inputs)
         ]);
         $request = (new ServerRequestFactory())->createFromGlobals();
         return $collection->dispatch($request, $this->defaultResponse);
@@ -135,13 +148,13 @@ class AuthorizationTest extends TestCase
             new Response(200, null, (new StreamFactory())->createStream(json_encode([])))
         );
 
+        $this->inputs->addCollector(new Collector());
+
         $response = $this->executeMiddleware('unittest/api', [
-            Authorization::OPT_INPUT_CALLBACK => function () {
-                return ['some' => 'thing'];
-            },
             Authorization::OPT_POLICY_MISSING_CALLBACK => function (array $pInputs) {
-                $this->assertArrayHasKey('some', $pInputs);
-                $this->assertSame('thing', $pInputs['some']);
+                $this->assertArrayHasKey('params', $pInputs);
+                $this->assertArrayHasKey('some', $pInputs['params']);
+                $this->assertSame('thing', $pInputs['params']['some']);
                 return true;
             }
         ]);
