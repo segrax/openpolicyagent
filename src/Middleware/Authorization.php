@@ -159,7 +159,7 @@ class Authorization implements MiddlewareInterface
         $attribute = $request->getAttribute($name, $this->options[self::OPT_ATTRIBUTE_INPUT_DEFAULT]);
 
         $input = [
-            'path'   => array_values(array_filter(explode('/', urldecode($request->getUri()->getPath())))),
+            'path'   => array_values(array_filter(explode('/', urldecode($request->getUri()->getPath())), 'strlen')),
             'method' => $request->getMethod(),
             'user' => $attribute['sub'] ?? '',
             $name => $attribute
