@@ -102,6 +102,7 @@ class Authorization implements MiddlewareInterface
     /**
      * Process server request
      */
+    #[\Override]
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         $input = $this->policyInputsPrepare($request);

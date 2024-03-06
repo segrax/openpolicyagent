@@ -149,13 +149,8 @@ class Client
     private function executePut(string $pUrl, bool $pJson, string $pBody = ""): bool
     {
         $response = $this->execute('PUT', $pUrl, $pJson, $pBody);
-
         // Success with no content
-        if ($response->getStatusCode() === 200 || $response->getStatusCode() === 204) {
-            return true;
-        }
-
-        return false;
+        return $response->getStatusCode() === 200 || $response->getStatusCode() === 204;
     }
 
     /**
@@ -166,11 +161,11 @@ class Client
         $request = $this->requestFactory->createRequest($pMethod, $pUrl);
         $request = $request->withHeader('Content-Type', ($pJson == true) ? 'application/json' : 'text/plain');
 
-        if (!empty($this->agentToken)) {
+        if ($this->agentToken !== '' && $this->agentToken !== '0') {
             $request = $request->withHeader('Authorization', 'Bearer ' . $this->agentToken);
         }
 
-        if (strlen($pBody)) {
+        if (strlen($pBody) !== 0) {
             $request->getBody()->write($pBody);
         }
 

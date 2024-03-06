@@ -46,9 +46,9 @@ class ServerException extends RuntimeException
         private const MsgUnauthorizedError          = "request rejected by administrative policy";
         private const MsgUndefinedError             = "document missing or undefined";
         private const MsgPluginConfigError          = "error(s) occurred while configuring plugin(s)";*/
-    private const OPA_KEY_ERRORCODE   = 'code';
-    private const OPA_KEY_ERRORMSG    = 'message';
-    private const OPA_KEY_ERRORS      = 'errors';
+    private const string OPA_KEY_ERRORCODE   = 'code';
+    private const string OPA_KEY_ERRORMSG    = 'message';
+    private const string OPA_KEY_ERRORS      = 'errors';
 
     /*
         {

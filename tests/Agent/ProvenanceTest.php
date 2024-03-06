@@ -38,12 +38,13 @@ class ProvenanceTest extends TestCase
 {
     private Provenance $provenance;
 
+    #[\Override]
     public function setUp(): void
     {
         $this->provenance = new Provenance($this->agentResponse());
     }
 
-    public function testVersion()
+    public function testVersion(): void
     {
         $this->assertSame($this->agentResponse()['version'], $this->provenance->getVersion());
     }

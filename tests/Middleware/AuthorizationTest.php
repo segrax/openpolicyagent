@@ -51,6 +51,7 @@ use Slim\Psr7\Response;
 
 class Collector implements CollectorInterface
 {
+    #[\Override]
     public function collect(ServerRequestInterface $pRequest): array
     {
         return ['some' => 'thing'];
@@ -70,6 +71,7 @@ class AuthorizationTest extends TestCase
     /**
      * Set a default success response
      */
+    #[\Override]
     public function setUp(): void
     {
         parent::setUp();
@@ -106,9 +108,7 @@ class AuthorizationTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->executeMiddleware('');
     }
-    /**
-     * @dataProvider policyResultAllowProvider
-     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('policyResultAllowProvider')]
     public function testAllow(Response $pResponse): void
     {
         $this->httpclient->method('sendRequest')->willReturn(
@@ -119,9 +119,7 @@ class AuthorizationTest extends TestCase
         $this->assertEquals('Success', $response->getBody()->__toString());
     }
 
-    /**
-     * @dataProvider policyResultDenyProvider
-     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('policyResultDenyProvider')]
     public function testDeny(Response $pResponse): void
     {
         $this->httpclient->method('sendRequest')->willReturn(
@@ -151,7 +149,7 @@ class AuthorizationTest extends TestCase
         $this->inputs->addCollector(new Collector());
 
         $response = $this->executeMiddleware('unittest/api', [
-            Authorization::OPT_POLICY_MISSING_CALLBACK => function (array $pInputs) {
+            Authorization::OPT_POLICY_MISSING_CALLBACK => function (array $pInputs): bool {
                 $this->assertArrayHasKey('params', $pInputs);
                 $this->assertArrayHasKey('some', $pInputs['params']);
                 $this->assertSame('thing', $pInputs['params']['some']);
@@ -171,7 +169,7 @@ class AuthorizationTest extends TestCase
         );
 
         $response = $this->executeMiddleware('unittest/api', [
-            Authorization::OPT_POLICY_MISSING_CALLBACK => function (array $pInputs) {
+            Authorization::OPT_POLICY_MISSING_CALLBACK => function (array $pInputs): bool {
                 return false;
             }
         ]);
@@ -179,7 +177,7 @@ class AuthorizationTest extends TestCase
         $this->assertEquals(403, $response->getStatusCode());
     }
 
-    public function policyResultAllowProvider(): array
+    public static function policyResultAllowProvider(): array
     {
         return [
             [
@@ -192,7 +190,7 @@ class AuthorizationTest extends TestCase
         ];
     }
 
-    public function policyResultDenyProvider(): array
+    public static function policyResultDenyProvider(): array
     {
         return [
             [

@@ -40,11 +40,11 @@ use Segrax\OpenPolicyAgent\Agent\Provenance;
  */
 class Response
 {
-    private const OPA_DECISIONID_ARRAY = 'decision_id';
-    private const OPA_EXPLAIN_ARRAY = 'explanation';
-    private const OPA_METRIC_ARRAY = 'metrics';
-    private const OPA_PROVENANCE_ARRAY = 'provenance';
-    private const OPA_RESULT_ARRAY = 'result';
+    private const string OPA_DECISIONID_ARRAY = 'decision_id';
+    private const string OPA_EXPLAIN_ARRAY = 'explanation';
+    private const string OPA_METRIC_ARRAY = 'metrics';
+    private const string OPA_PROVENANCE_ARRAY = 'provenance';
+    private const string OPA_RESULT_ARRAY = 'result';
 
     private array $result = [];
     private array $metrics = [];

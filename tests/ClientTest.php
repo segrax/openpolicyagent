@@ -54,15 +54,14 @@ class ClientTest extends TestCase
     /**
      * Setup the Client for each test
      */
+    #[\Override]
     public function setUp(): void
     {
         $this->httpclient = $this->createMock(ClientInterface::class);
         $this->client = new Client(null, $this->httpclient, new RequestFactory(), 'http', 'fake-token');
     }
 
-    /**
-     * @dataProvider agentProvenanceResponse
-     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('agentProvenanceResponse')]
     public function testAgentVersion(array $pAgentResponse): void
     {
         $this->httpclient->method('sendRequest')->willReturn(
@@ -96,9 +95,7 @@ class ClientTest extends TestCase
         $this->assertSame(false, $this->client->dataUpdate('random', '{"data":"test"}'));
     }
 
-    /**
-     * @dataProvider dataUpdateFailProvider
-     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('dataUpdateFailProvider')]
     public function testDataUpdateFailThrows(Response $pDataResponse): void
     {
         $this->httpclient->method('sendRequest')->willReturn(
@@ -128,9 +125,7 @@ class ClientTest extends TestCase
         $this->assertSame(true, $this->client->policyUpdate('random', 'package random.api', false));
     }
 
-    /**
-     * @dataProvider policyUpdateFailProvider
-     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('policyUpdateFailProvider')]
     public function testPolicyUpdateFail(Response $pDataResponse): void
     {
         $this->httpclient->method('sendRequest')->willReturn(
@@ -141,9 +136,7 @@ class ClientTest extends TestCase
         $this->client->dataUpdate('random', 'no content');
     }
 
-    /**
-     * @dataProvider policyUpdateFailProvider
-     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('policyUpdateFailProvider')]
     public function testPolicyUpdateFailCatch(Response $pDataResponse): void
     {
         $this->httpclient->method('sendRequest')->willReturn(
@@ -158,9 +151,7 @@ class ClientTest extends TestCase
         }
     }
 
-    /**
-     * @dataProvider policyResultAllowProvider
-     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('policyResultAllowProvider')]
     public function testPolicyAllow(Response $pResponse): void
     {
         $this->httpclient->method('sendRequest')->willReturn(
@@ -172,9 +163,7 @@ class ClientTest extends TestCase
         $this->assertSame(true, $results['allow']);
     }
 
-    /**
-     * @dataProvider policyResultDeniedProvider
-     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('policyResultDeniedProvider')]
     public function testPolicyDeny(Response $pResponse): void
     {
         $this->httpclient->method('sendRequest')->willReturn(
@@ -209,9 +198,7 @@ class ClientTest extends TestCase
         }
     }
 
-    /**
-     * @dataProvider fullResultProvider
-     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('fullResultProvider')]
     public function testFullResponse(Response $pFullResponse): void
     {
         $this->httpclient->method('sendRequest')->willReturn(
@@ -227,9 +214,7 @@ class ClientTest extends TestCase
 
         $this->assertSame(false, $response->has('doesntexist'));
     }
-    /**
-     * @dataProvider queryResultProvider
-     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('queryResultProvider')]
     public function testQuery(Response $pResponse): void
     {
         $this->httpclient->method('sendRequest')->willReturn(
@@ -252,9 +237,7 @@ class ClientTest extends TestCase
         $this->assertSame(0, $results['i']);
         $this->assertSame('test', $results['name']);
     }
-    /**
-     * @dataProvider queryResultFailProvider
-     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('queryResultFailProvider')]
     public function testQueryFails(Response $pResponse): void
     {
         $this->httpclient->method('sendRequest')->willReturn(
@@ -277,7 +260,7 @@ class ClientTest extends TestCase
         );
     }
 
-    public function agentProvenanceResponse(): array
+    public static function agentProvenanceResponse(): array
     {
         return [
             [
@@ -297,7 +280,7 @@ class ClientTest extends TestCase
         ];
     }
 
-    public function dataUpdateFailProvider(): array
+    public static function dataUpdateFailProvider(): array
     {
         return [
             [
@@ -311,7 +294,7 @@ class ClientTest extends TestCase
         ];
     }
 
-    public function policyUpdateFailProvider(): array
+    public static function policyUpdateFailProvider(): array
     {
         return [
             [
@@ -336,7 +319,7 @@ class ClientTest extends TestCase
         ];
     }
 
-    public function policyResultAllowProvider(): array
+    public static function policyResultAllowProvider(): array
     {
         return [
             [
@@ -349,7 +332,7 @@ class ClientTest extends TestCase
         ];
     }
 
-    public function policyResultDeniedProvider(): array
+    public static function policyResultDeniedProvider(): array
     {
         return [
             [
@@ -362,7 +345,7 @@ class ClientTest extends TestCase
         ];
     }
 
-    public function queryResultProvider(): array
+    public static function queryResultProvider(): array
     {
         return [
             [
@@ -375,7 +358,7 @@ class ClientTest extends TestCase
         ];
     }
 
-    public function queryResultFailProvider(): array
+    public static function queryResultFailProvider(): array
     {
         return [
             [
@@ -404,7 +387,7 @@ class ClientTest extends TestCase
         ];
     }
 
-    public function fullResultProvider(): array
+    public static function fullResultProvider(): array
     {
         return [
             [

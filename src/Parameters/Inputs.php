@@ -43,7 +43,7 @@ class Inputs implements CollectorInterface
     /**
      * Add a collector
      */
-    public function addCollector(CollectorInterface $pCollector)
+    public function addCollector(CollectorInterface $pCollector): void
     {
         $this->collectors[] = $pCollector;
     }
@@ -51,6 +51,7 @@ class Inputs implements CollectorInterface
     /**
      * Get parameters from all collectors
      */
+    #[\Override]
     public function collect(ServerRequestInterface $pRequest): array
     {
         $params = [];

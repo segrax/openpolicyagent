@@ -64,7 +64,7 @@ class Distributor implements MiddlewareInterface
     /**
      * @var array<string, string>
      */
-    private $options = [
+    private array $options = [
         self::OPT_ATTRIBUTE_TOKEN   => 'token',
         self::OPT_AGENT_USER        => 'opa',
         self::OPT_TOKEN_KEY         => 'sub'
@@ -107,6 +107,7 @@ class Distributor implements MiddlewareInterface
     /**
      * Check if OPA is attemting to fetch its bundle, then pack and serve it.
      */
+    #[\Override]
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         $attribute = $request->getAttribute($this->options[self::OPT_ATTRIBUTE_TOKEN]);
@@ -121,10 +122,9 @@ class Distributor implements MiddlewareInterface
         if ($attribute['sub'] === $this->options[self::OPT_AGENT_USER]) {
             $bundleFile = $this->getBundle($request);
             $stream = $this->streamFactory->createStream($bundleFile);
-            $response = $this->responseFactory->createResponse(200)
+            return $this->responseFactory->createResponse(200)
                 ->withHeader('Content-Type', 'application/gzip')
                 ->withBody($stream);
-            return $response;
         }
 
         return $handler->handle($request);

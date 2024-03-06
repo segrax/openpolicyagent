@@ -54,8 +54,8 @@ use Slim\Psr7\Uri;
  */
 class DistributorTest extends TestCase
 {
-    private const POLICY_PATH = __DIR__ . '/../policies';
-    private const TOKEN = ['sub' => 'opa'];
+    private const string POLICY_PATH = __DIR__ . '/../policies';
+    private const array TOKEN = ['sub' => 'opa'];
 
     private Closure $defaultResponse;
     private ClientInterface $httpclient;
@@ -64,6 +64,7 @@ class DistributorTest extends TestCase
     /**
      * Set a default success response
      */
+    #[\Override]
     public function setUp(): void
     {
         parent::setUp();
@@ -131,7 +132,7 @@ class DistributorTest extends TestCase
             self::POLICY_PATH,
             '/opa/bundles',
             self::TOKEN,
-            function ($pRequest) use (&$cbhit) {
+            function ($pRequest) use (&$cbhit): array {
                 $cbhit = true;
                 return ['asd' => 'file contentsz'];
             }

@@ -37,11 +37,12 @@ use Segrax\OpenPolicyAgent\Exception\ServerException;
 
 class ServerExceptionTest extends TestCase
 {
+    #[\Override]
     public function setUp(): void
     {
     }
 
-    public function testErrorResponse()
+    public function testErrorResponse(): void
     {
         $exception =  new ServerException('        {
             "code": "invalid_parameter",
@@ -63,7 +64,7 @@ class ServerExceptionTest extends TestCase
         $this->assertArrayHasKey('code', $exception->getErrors()[0]);
     }
 
-    public function testInvalidErrorResponseThrows()
+    public function testInvalidErrorResponseThrows(): void
     {
         $this->expectException(RuntimeException::class);
         $exception =  new ServerException('{}');

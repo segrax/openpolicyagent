@@ -38,6 +38,7 @@ use Slim\Psr7\Factory\ServerRequestFactory;
 
 class Collector implements CollectorInterface
 {
+    #[\Override]
     public function collect(ServerRequestInterface $pRequest): array
     {
         return ['some' => 'parameter'];
@@ -45,6 +46,7 @@ class Collector implements CollectorInterface
 }
 class CollectorBad implements CollectorInterface
 {
+    #[\Override]
     public function collect(ServerRequestInterface $pRequest): array
     {
         throw new RuntimeException('Failed to collect');
@@ -55,6 +57,7 @@ class InputsTest extends TestCase
 {
     private Inputs $inputs;
 
+    #[\Override]
     public function setUp(): void
     {
         $this->inputs = new Inputs();
